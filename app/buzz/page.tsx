@@ -5,17 +5,18 @@ import type { TeamNum } from '@/lib/types'
 import { TEAM_COLORS } from '@/lib/types'
 
 interface BuzzState {
-  winner: TeamNum | null
+  order: TeamNum[]
   team1Name: string
   team2Name: string
   team3Name: string
-  locked: boolean
 }
 
 function getTeamName(s: BuzzState, t: TeamNum) {
   return t === 1 ? s.team1Name : t === 2 ? s.team2Name : s.team3Name
 }
 
+const ORDINALS = ['1ST', '2ND', '3RD']
+const MEDALS = ['🥇', '🥈', '🥉']
 const TEAMS: TeamNum[] = [1, 2, 3]
 
 function BuzzerInner() {
@@ -23,12 +24,10 @@ function BuzzerInner() {
   const raw = params.get('team')
   const team: TeamNum | null = raw === '1' ? 1 : raw === '2' ? 2 : raw === '3' ? 3 : null
 
-  const [buzzState, setBuzzState] = useState<BuzzState | null>(null)
-  const [myBuzzed, setMyBuzzed] = useState(false)
-  const [pressing, setPressing] = useState(false)
+  const [buzzState, setBuzzState] = useState<BuzzState>({ order: [], team1Name: 'Juniors', team2Name: 'Coaches', team3Name: 'Small Group Guides' })
+  const [sending, setSending] = useState(false)
   const pollRef = useRef<NodeJS.Timeout | null>(null)
   const audioRef = useRef<AudioContext | null>(null)
-  const prevWinnerRef = useRef<TeamNum | null>(null)
 
   function getAudio() {
     if (!audioRef.current) {
@@ -49,67 +48,90 @@ function BuzzerInner() {
     })
   }
 
-  function playLose(ctx: AudioContext) {
+  function playPlace(ctx: AudioContext, position: number) {
+    // Different tones for 1st/2nd/3rd
+    const freqs = [[880, 1047], [660, 784], [440, 523]]
+    const pair = freqs[Math.min(position, 2)]
     const t = ctx.currentTime
-    const o = ctx.createOscillator(); const g = ctx.createGain()
-    o.connect(g); g.connect(ctx.destination)
-    o.type = 'sawtooth'
-    o.frequency.setValueAtTime(200, t); o.frequency.exponentialRampToValueAtTime(80, t + 0.5)
-    g.gain.setValueAtTime(0.35, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.5)
-    o.start(t); o.stop(t + 0.5)
+    pair.forEach((f, i) => {
+      const o = ctx.createOscillator(); const g = ctx.createGain()
+      o.connect(g); g.connect(ctx.destination)
+      o.frequency.value = f
+      const s = t + i * 0.12
+      g.gain.setValueAtTime(0.35, s); g.gain.exponentialRampToValueAtTime(0.001, s + 0.35)
+      o.start(s); o.stop(s + 0.35)
+    })
   }
 
-  async function fetchState() {
-    try {
-      const res = await fetch('/api/buzz', { cache: 'no-store' })
-      if (res.ok) {
-        const data: BuzzState = await res.json()
-        const prev = prevWinnerRef.current
-        if (!prev && data.winner && team) {
-          try {
-            const ctx = getAudio()
-            if (data.winner === team) playWin(ctx); else playLose(ctx)
-          } catch {}
-        }
-        prevWinnerRef.current = data.winner
-        setBuzzState(data)
-      }
-    } catch {}
-  }
+  const prevOrderLenRef = useRef(0)
 
   useEffect(() => {
-    fetchState()
-    pollRef.current = setInterval(fetchState, 300)
+    async function poll() {
+      try {
+        const res = await fetch('/api/buzz', { cache: 'no-store' })
+        if (res.ok) {
+          const data: BuzzState = await res.json()
+          // Play sound when MY team's position just got registered
+          if (team && data.order.includes(team) && !buzzState.order.includes(team)) {
+            const position = data.order.indexOf(team)
+            try { playPlace(getAudio(), position) } catch {}
+          }
+          prevOrderLenRef.current = data.order.length
+          setBuzzState(data)
+        }
+      } catch {}
+    }
+
+    poll()
+    pollRef.current = setInterval(poll, 400)
     return () => { if (pollRef.current) clearInterval(pollRef.current) }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [buzzState.order, team]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleBuzz() {
-    if (!team || buzzState?.locked || myBuzzed) return
-    setMyBuzzed(true)
+    if (!team || sending) return
+    // Check already buzzed
+    if (buzzState.order.includes(team)) return
+    setSending(true)
     try {
+      // Optimistic update so button locks immediately
+      setBuzzState(prev => ({
+        ...prev,
+        order: prev.order.includes(team) ? prev.order : [...prev.order, team],
+      }))
       const res = await fetch('/api/buzz', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'buzz', team }),
       })
-      const data: BuzzState = await res.json()
-      setBuzzState(data)
-    } catch {}
+      if (res.ok) {
+        const data: BuzzState = await res.json()
+        const position = data.order.indexOf(team)
+        try { playPlace(getAudio(), position) } catch {}
+        setBuzzState(data)
+      }
+    } catch {
+      // On error, revert optimistic update
+      setBuzzState(prev => ({ ...prev, order: prev.order.filter(t => t !== team) }))
+    } finally {
+      setSending(false)
+    }
   }
 
-  // No team — show selector
+  // No team selected — show selector
   if (!team) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-8 p-6"
            style={{ background: 'linear-gradient(180deg, #0B1437 0%, #1a3c7f 100%)' }}>
         <div className="text-center">
           <div className="text-4xl font-display" style={{ color: '#f5c842' }}>FAMILY FEUD</div>
-          <div className="text-lg mt-1" style={{ color: 'rgba(255,255,255,0.6)', fontFamily: 'Arial' }}>Choose your team to buzz in</div>
+          <div className="text-lg mt-1" style={{ color: 'rgba(255,255,255,0.6)', fontFamily: 'Arial' }}>
+            Choose your team to buzz in
+          </div>
         </div>
         <div className="flex flex-col gap-4 w-full max-w-xs">
           {TEAMS.map(t => {
             const col = TEAM_COLORS[t]
-            const name = buzzState ? getTeamName(buzzState, t) : ['Juniors', 'Coaches', 'Small Group Guides'][t - 1]
+            const name = getTeamName(buzzState, t)
             return (
               <a key={t} href={`/buzz?team=${t}`}
                  className="block text-center py-6 rounded-2xl text-2xl font-display tracking-wider transition-all hover:scale-105"
@@ -129,71 +151,100 @@ function BuzzerInner() {
   }
 
   const col = TEAM_COLORS[team]
-  const teamName = buzzState ? getTeamName(buzzState, team) : ['Juniors', 'Coaches', 'Small Group Guides'][team - 1]
-  const winner = buzzState?.winner ?? null
-  const iWon = winner === team
-  const iLost = winner !== null && winner !== team
-  const locked = buzzState?.locked ?? false
-  const winnerName = winner && buzzState ? getTeamName(buzzState, winner) : ''
+  const teamName = getTeamName(buzzState, team)
+  const myPosition = buzzState.order.indexOf(team) // -1 if not buzzed yet
+  const hasBuzzed = myPosition !== -1
+  const positionLabel = hasBuzzed ? ORDINALS[myPosition] : null
+  const medal = hasBuzzed ? MEDALS[myPosition] : null
+
+  // Background changes based on position
+  const bgColor = hasBuzzed
+    ? myPosition === 0 ? '#052e16'   // 1st = dark green
+    : myPosition === 1 ? '#1c1917'   // 2nd = dark stone
+    : '#18181b'                       // 3rd = dark zinc
+    : `linear-gradient(180deg, ${col.dark} 0%, #0B1437 100%)`
 
   return (
     <div className="min-h-screen flex flex-col select-none"
-         style={{
-           background: iWon ? '#052e16'
-             : iLost ? '#111827'
-             : `linear-gradient(180deg, ${col.dark} 0%, #0B1437 100%)`,
-         }}>
+         style={{ background: bgColor }}>
 
       {/* Team header */}
-      <div className="flex-shrink-0 py-5 text-center" style={{ background: 'rgba(0,0,0,0.3)' }}>
+      <div className="flex-shrink-0 py-4 text-center" style={{ background: 'rgba(0,0,0,0.4)' }}>
         <div className="text-3xl font-display tracking-wider" style={{ color: col.glow }}>
           {teamName.toUpperCase()}
         </div>
       </div>
 
-      {/* Buzz button */}
-      <div className="flex-1 flex flex-col items-center justify-center p-6 gap-6">
-        <button
-          onPointerDown={() => { setPressing(true); handleBuzz() }}
-          onPointerUp={() => setPressing(false)}
-          onPointerLeave={() => setPressing(false)}
-          disabled={locked}
-          className="w-full rounded-3xl flex flex-col items-center justify-center gap-4 transition-all disabled:cursor-default"
-          style={{
-            background: iWon ? '#16a34a' : iLost ? '#374151' : `linear-gradient(135deg, ${col.dark}, ${col.bg})`,
-            minHeight: '50vh',
-            maxHeight: 420,
-            border: `4px solid ${iWon ? '#22c55e' : iLost ? '#374151' : col.border}`,
-            boxShadow: iWon ? '0 0 40px rgba(22,163,74,0.6)' : iLost ? 'none' : `0 0 30px ${col.bg}66`,
-            transform: pressing && !locked ? 'scale(0.97)' : 'scale(1)',
-          }}>
-          {iWon ? (
-            <><div className="text-6xl">✓</div><div className="text-3xl font-display tracking-wider">FIRST!</div></>
-          ) : iLost ? (
-            <><div className="text-5xl">✗</div><div className="text-2xl font-display">TOO SLOW</div></>
-          ) : (
-            <>
-              <div className="text-8xl font-display" style={{ lineHeight: 1 }}>
-                {teamName.charAt(0)}
-              </div>
-              <div className="text-2xl font-display tracking-wider">BUZZ!</div>
-            </>
-          )}
-        </button>
+      {/* Main area */}
+      <div className="flex-1 flex flex-col items-center justify-center p-6 gap-5">
 
-        <div className="text-xl font-bold text-center"
-             style={{
-               color: iWon ? '#f5c842' : iLost ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.8)',
-               fontFamily: 'Arial Black, sans-serif',
-             }}>
-          {iWon ? '🎉 YOU BUZZED FIRST!'
-            : iLost ? `${winnerName} buzzed first`
-            : 'TAP TO BUZZ IN!'}
-        </div>
+        {hasBuzzed ? (
+          // Locked — show position
+          <div className="w-full flex flex-col items-center gap-4">
+            <div className="text-7xl">{medal}</div>
+            <div className="text-6xl font-display tracking-widest"
+                 style={{
+                   color: myPosition === 0 ? '#f5c842' : myPosition === 1 ? '#d1d5db' : '#b45309',
+                   textShadow: myPosition === 0 ? '0 0 20px rgba(245,200,66,0.5)' : 'none',
+                 }}>
+              {positionLabel}
+            </div>
+            <div className="text-xl font-bold uppercase tracking-wider"
+                 style={{ color: 'rgba(255,255,255,0.6)', fontFamily: 'Arial' }}>
+              {myPosition === 0 ? 'You buzzed first!' : myPosition === 1 ? 'You were second' : 'You were third'}
+            </div>
+            <div className="mt-4 text-sm text-center"
+                 style={{ color: 'rgba(255,255,255,0.3)', fontFamily: 'Arial' }}>
+              Waiting for host to reset…
+            </div>
+          </div>
+        ) : (
+          // Button — tap to buzz
+          <button
+            onClick={handleBuzz}
+            disabled={sending}
+            className="w-full rounded-3xl flex flex-col items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-70"
+            style={{
+              background: `linear-gradient(135deg, ${col.dark}, ${col.bg})`,
+              minHeight: '52vh',
+              maxHeight: 440,
+              border: `4px solid ${col.border}`,
+              boxShadow: `0 0 30px ${col.bg}66, 0 0 60px ${col.bg}33`,
+            }}>
+            <div className="text-8xl font-display" style={{ lineHeight: 1 }}>
+              {teamName.charAt(0)}
+            </div>
+            <div className="text-3xl font-display tracking-widest">
+              {sending ? 'SENDING…' : 'BUZZ!'}
+            </div>
+          </button>
+        )}
+
+        {/* Show others' positions */}
+        {buzzState.order.length > 0 && (
+          <div className="w-full space-y-1.5">
+            {buzzState.order.map((t, i) => {
+              const tCol = TEAM_COLORS[t]
+              const tName = getTeamName(buzzState, t)
+              return (
+                <div key={t} className="flex items-center gap-3 px-4 py-2 rounded-xl"
+                     style={{ background: 'rgba(255,255,255,0.05)', border: `1px solid ${tCol.border}44` }}>
+                  <span style={{ fontSize: 18 }}>{MEDALS[i]}</span>
+                  <span className="font-bold text-sm" style={{ color: tCol.glow, fontFamily: 'Arial' }}>
+                    {ORDINALS[i]}
+                  </span>
+                  <span className="flex-1 font-bold text-sm" style={{ color: 'white', fontFamily: 'Arial' }}>
+                    {tName}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       <div className="flex-shrink-0 py-3 text-center text-xs"
-           style={{ color: 'rgba(255,255,255,0.2)', fontFamily: 'Arial' }}>
+           style={{ color: 'rgba(255,255,255,0.15)', fontFamily: 'Arial' }}>
         FAMILY FEUD BUZZER
       </div>
     </div>

@@ -4,27 +4,28 @@ import type { TeamNum } from '@/lib/types'
 import { TEAM_COLORS } from '@/lib/types'
 
 interface BuzzState {
-  winner: TeamNum | null
+  order: TeamNum[]
   team1Name: string
   team2Name: string
   team3Name: string
-  locked: boolean
 }
 
+const ORDINALS = ['1ST', '2ND', '3RD']
+const MEDALS = ['🥇', '🥈', '🥉']
 const TEAMS: TeamNum[] = [1, 2, 3]
 
 function getTeamName(s: BuzzState, t: TeamNum) {
   return t === 1 ? s.team1Name : t === 2 ? s.team2Name : s.team3Name
 }
 
-const DEFAULT_NAMES = ['Juniors', 'Coaches', 'Small Group Guides']
+const DEFAULT: BuzzState = { order: [], team1Name: 'Juniors', team2Name: 'Coaches', team3Name: 'Small Group Guides' }
 
 export default function BuzzDisplayPage() {
-  const [state, setState] = useState<BuzzState | null>(null)
-  const [animKey, setAnimKey] = useState(0)
+  const [state, setState] = useState<BuzzState>(DEFAULT)
+  const [names, setNames] = useState([DEFAULT.team1Name, DEFAULT.team2Name, DEFAULT.team3Name])
   const [editingNames, setEditingNames] = useState(false)
-  const [names, setNames] = useState(DEFAULT_NAMES)
-  const prevWinnerRef = useRef<TeamNum | null>(null)
+  const [animKeys, setAnimKeys] = useState<number[]>([])
+  const prevOrderRef = useRef<TeamNum[]>([])
   const audioRef = useRef<AudioContext | null>(null)
 
   function getAudio() {
@@ -34,15 +35,17 @@ export default function BuzzDisplayPage() {
     return audioRef.current
   }
 
-  function playFanfare(ctx: AudioContext) {
+  function playBuzz(position: number, ctx: AudioContext) {
     const t = ctx.currentTime
-    ;[523, 659, 784, 1047, 1319].forEach((freq, i) => {
+    const freqs = [[523, 659, 784, 1047], [440, 554, 659], [330, 415, 523]]
+    const notes = freqs[Math.min(position, 2)]
+    notes.forEach((freq, i) => {
       const o = ctx.createOscillator(); const g = ctx.createGain()
       o.connect(g); g.connect(ctx.destination)
       o.frequency.value = freq
       const s = t + i * 0.1
       g.gain.setValueAtTime(0.3, s); g.gain.exponentialRampToValueAtTime(0.001, s + 0.5)
-      o.start(s); o.stop(s + 0.6)
+      o.start(s); o.stop(s + 0.5)
     })
   }
 
@@ -53,18 +56,26 @@ export default function BuzzDisplayPage() {
         const res = await fetch('/api/buzz', { cache: 'no-store' })
         if (res.ok && !ignore) {
           const data: BuzzState = await res.json()
-          if (!prevWinnerRef.current && data.winner) {
-            setAnimKey(k => k + 1)
-            try { playFanfare(getAudio()) } catch {}
+          const prev = prevOrderRef.current
+          // Find newly added teams and animate them
+          const newTeams = data.order.filter(t => !prev.includes(t))
+          if (newTeams.length > 0) {
+            const newPositions = newTeams.map(t => data.order.indexOf(t))
+            setAnimKeys(k => [...k, ...newPositions])
+            setTimeout(() => setAnimKeys([]), 800)
+            try {
+              const ctx = getAudio()
+              newPositions.forEach(p => playBuzz(p, ctx))
+            } catch {}
           }
-          prevWinnerRef.current = data.winner
+          prevOrderRef.current = data.order
           setState(data)
           setNames([data.team1Name, data.team2Name, data.team3Name])
         }
       } catch {}
     }
     poll()
-    const id = setInterval(poll, 300)
+    const id = setInterval(poll, 400)
     return () => { ignore = true; clearInterval(id) }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -74,8 +85,8 @@ export default function BuzzDisplayPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'reset', team1Name: names[0], team2Name: names[1], team3Name: names[2] }),
     })
-    setState(s => s ? { ...s, winner: null, locked: false } : s)
-    prevWinnerRef.current = null
+    setState(s => ({ ...s, order: [] }))
+    prevOrderRef.current = []
   }
 
   async function saveNames() {
@@ -86,10 +97,6 @@ export default function BuzzDisplayPage() {
     })
     setEditingNames(false)
   }
-
-  const winner = state?.winner ?? null
-  const winnerName = winner && state ? getTeamName(state, winner) : ''
-  const winnerCol = winner ? TEAM_COLORS[winner] : null
 
   return (
     <div className="min-h-screen flex flex-col"
@@ -105,67 +112,67 @@ export default function BuzzDisplayPage() {
         </div>
         <div className="text-sm mt-1 tracking-widest uppercase"
              style={{ color: 'rgba(255,255,255,0.5)', fontFamily: 'Arial' }}>
-          Buzzer Display
+          Buzzer Order
         </div>
       </div>
 
-      {/* Main */}
-      <div className="flex-1 flex flex-col items-center justify-center gap-6 p-6">
-        {winner && winnerCol ? (
-          <div key={animKey} className="text-center"
-               style={{ animation: 'slideDown 0.4s cubic-bezier(0.23,1,0.32,1)' }}>
-            <div className="text-lg mb-3 tracking-widest uppercase"
-                 style={{ color: 'rgba(255,255,255,0.6)', fontFamily: 'Arial' }}>
-              FIRST TO BUZZ IN:
-            </div>
-            <div className="px-12 py-8 rounded-3xl"
+      {/* Main — 3 position slots */}
+      <div className="flex-1 flex flex-col justify-center gap-3 px-6 py-4">
+        {[0, 1, 2].map(position => {
+          const team = state.order[position] as TeamNum | undefined
+          const col = team ? TEAM_COLORS[team] : null
+          const name = team ? getTeamName(state, team) : null
+          const isNew = animKeys.includes(position)
+
+          return (
+            <div key={position}
+                 className="flex items-center gap-4 px-6 py-5 rounded-2xl"
                  style={{
-                   background: `linear-gradient(135deg, ${winnerCol.dark}, ${winnerCol.bg})`,
-                   border: '4px solid #f5c842',
-                   boxShadow: '0 0 40px rgba(245,200,66,0.6), 0 0 80px rgba(245,200,66,0.3)',
-                   animation: 'pulseGold 1.5s ease-in-out infinite',
+                   background: team
+                     ? `linear-gradient(135deg, ${col!.dark}, ${col!.bg})`
+                     : 'rgba(255,255,255,0.04)',
+                   border: `2px solid ${team ? col!.border : 'rgba(255,255,255,0.08)'}`,
+                   boxShadow: team ? `0 0 20px ${col!.glow}44` : 'none',
+                   animation: isNew ? 'slideDown 0.4s cubic-bezier(0.23,1,0.32,1)' : 'none',
+                   minHeight: 90,
                  }}>
-              <div className="text-5xl md:text-7xl font-display tracking-wider"
-                   style={{ color: 'white', textShadow: `0 0 20px ${winnerCol.glow}` }}>
-                {winnerName.toUpperCase()}
+
+              {/* Medal */}
+              <div className="text-4xl flex-shrink-0 w-12 text-center">
+                {team ? MEDALS[position] : <span style={{ color: 'rgba(255,255,255,0.15)', fontSize: 28 }}>{position + 1}</span>}
+              </div>
+
+              {/* Ordinal */}
+              <div className="flex-shrink-0 text-center" style={{ width: 60 }}>
+                <div className="text-2xl font-display"
+                     style={{
+                       color: team
+                         ? position === 0 ? '#f5c842'
+                         : position === 1 ? '#d1d5db'
+                         : '#b45309'
+                         : 'rgba(255,255,255,0.15)',
+                     }}>
+                  {ORDINALS[position]}
+                </div>
+              </div>
+
+              {/* Team name */}
+              <div className="flex-1">
+                {team ? (
+                  <div className="text-2xl md:text-3xl font-display tracking-wider"
+                       style={{ color: 'white' }}>
+                    {name!.toUpperCase()}
+                  </div>
+                ) : (
+                  <div className="text-lg animate-pulse"
+                       style={{ color: 'rgba(255,255,255,0.2)', fontFamily: 'Arial' }}>
+                    Waiting…
+                  </div>
+                )}
               </div>
             </div>
-          </div>
-        ) : (
-          // Waiting — show all 3 team panels
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-3xl">
-            {TEAMS.map(t => {
-              const col = TEAM_COLORS[t]
-              const name = state ? getTeamName(state, t) : DEFAULT_NAMES[t - 1]
-              return (
-                <div key={t}
-                     className="flex items-center justify-center py-10 rounded-2xl"
-                     style={{
-                       background: `linear-gradient(135deg, ${col.dark}44, ${col.bg}22)`,
-                       border: `2px solid ${col.border}33`,
-                     }}>
-                  <div className="text-center">
-                    <div className="text-3xl md:text-4xl font-display tracking-wider"
-                         style={{ color: `${col.glow}66` }}>
-                      {name.toUpperCase()}
-                    </div>
-                    <div className="mt-3 text-sm animate-pulse"
-                         style={{ color: 'rgba(255,255,255,0.2)', fontFamily: 'Arial' }}>
-                      waiting…
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
-
-        {!winner && (
-          <div className="text-xl font-display tracking-widest"
-               style={{ color: 'rgba(255,255,255,0.15)' }}>
-            READY FOR BUZZ
-          </div>
-        )}
+          )
+        })}
       </div>
 
       {/* Controls */}
@@ -176,11 +183,7 @@ export default function BuzzDisplayPage() {
               <input key={t} value={names[t - 1]}
                      onChange={e => setNames(prev => prev.map((v, i) => i === t - 1 ? e.target.value : v))}
                      className="px-3 py-2 rounded text-sm font-bold w-32"
-                     style={{
-                       background: '#1a3c7f',
-                       border: `1px solid ${TEAM_COLORS[t].border}88`,
-                       color: 'white',
-                     }} />
+                     style={{ background: '#1a3c7f', border: `1px solid ${TEAM_COLORS[t].border}88`, color: 'white' }} />
             ))}
             <button onClick={saveNames} className="px-4 py-2 rounded text-sm font-bold"
                     style={{ background: '#f5c842', color: '#0B1437' }}>Save</button>
@@ -198,10 +201,10 @@ export default function BuzzDisplayPage() {
         <button onClick={reset}
                 className="px-8 py-3 rounded-xl text-lg font-display tracking-widest transition-all hover:scale-105 active:scale-95"
                 style={{
-                  background: winner ? 'linear-gradient(135deg, #f5c842, #c99a00)' : '#1a3c7f',
-                  color: winner ? '#0B1437' : 'rgba(255,255,255,0.5)',
-                  border: winner ? 'none' : '1px solid rgba(255,255,255,0.1)',
-                  boxShadow: winner ? '0 4px 20px rgba(245,200,66,0.4)' : 'none',
+                  background: state.order.length > 0 ? 'linear-gradient(135deg, #f5c842, #c99a00)' : '#1a3c7f',
+                  color: state.order.length > 0 ? '#0B1437' : 'rgba(255,255,255,0.4)',
+                  border: state.order.length > 0 ? 'none' : '1px solid rgba(255,255,255,0.1)',
+                  boxShadow: state.order.length > 0 ? '0 4px 20px rgba(245,200,66,0.4)' : 'none',
                 }}>
           RESET BUZZERS
         </button>

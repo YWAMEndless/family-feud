@@ -65,7 +65,7 @@ function playSound(type: SyncMessage['sound'], ctx: AudioContext) {
 }
 
 interface BuzzState {
-  winner: TeamNum | null
+  order: TeamNum[]
   team1Name: string
   team2Name: string
   team3Name: string
@@ -342,52 +342,54 @@ export default function GamePage() {
   )
 }
 
+const MEDALS = ['🥇', '🥈', '🥉']
+const ORDINALS = ['1ST', '2ND', '3RD']
+
 function BuzzerWidget({ buzz }: { buzz: BuzzState | null }) {
-  const winner = buzz?.winner ?? null
-  const names = [
-    buzz?.team1Name ?? 'Juniors',
-    buzz?.team2Name ?? 'Coaches',
-    buzz?.team3Name ?? 'Small Group Guides',
-  ]
+  const order = buzz?.order ?? []
+  const names = [buzz?.team1Name ?? 'Juniors', buzz?.team2Name ?? 'Coaches', buzz?.team3Name ?? 'Small Group Guides']
+
+  function getTeamName(t: TeamNum) { return names[t - 1] }
 
   return (
     <div className="rounded-xl overflow-hidden"
-         style={{ border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.3)' }}>
+         style={{ border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(0,0,0,0.35)' }}>
       <div className="px-2 py-0.5 text-center"
-           style={{ background: 'rgba(0,0,0,0.4)', fontSize: 9, letterSpacing: '0.15em',
+           style={{ background: 'rgba(0,0,0,0.5)', fontSize: 8, letterSpacing: '0.2em',
                     color: 'rgba(255,255,255,0.4)', fontFamily: 'Arial', textTransform: 'uppercase' }}>
         Buzzers
       </div>
       <div className="flex flex-col gap-0.5 p-1.5">
-        {TEAMS.map(t => {
-          const col = TEAM_COLORS[t]
-          const isWinner = winner === t
-          const isLoser = winner !== null && winner !== t
+        {[0, 1, 2].map(pos => {
+          const team = order[pos] as TeamNum | undefined
+          const col = team ? TEAM_COLORS[team] : null
           return (
-            <div key={t}
-                 className="flex items-center gap-1.5 px-2 py-1 rounded-lg transition-all"
+            <div key={pos}
+                 className="flex items-center gap-1.5 px-2 py-1 rounded-lg"
                  style={{
-                   background: isWinner ? col.bg : 'rgba(255,255,255,0.04)',
-                   border: `1px solid ${isWinner ? col.border : 'rgba(255,255,255,0.06)'}`,
-                   boxShadow: isWinner ? `0 0 10px ${col.glow}88` : 'none',
-                   animation: isWinner ? 'pulseGold 1.5s ease-in-out infinite' : 'none',
-                   opacity: isLoser ? 0.3 : 1,
+                   background: team ? `${col!.bg}cc` : 'rgba(255,255,255,0.03)',
+                   border: `1px solid ${team ? col!.border + '88' : 'rgba(255,255,255,0.06)'}`,
+                   boxShadow: team && pos === 0 ? `0 0 8px ${col!.glow}66` : 'none',
                  }}>
-              <div className="w-2 h-2 rounded-full flex-shrink-0"
-                   style={{ background: isWinner ? 'white' : col.bg, opacity: isWinner ? 1 : 0.7 }} />
+              <span style={{ fontSize: 12, flexShrink: 0 }}>{team ? MEDALS[pos] : <span style={{ color: 'rgba(255,255,255,0.15)', fontSize: 10 }}>{pos + 1}</span>}</span>
               <span style={{
-                fontSize: 11, fontFamily: 'Arial Black, sans-serif', color: 'white',
-                fontWeight: 'bold', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                fontSize: 10, fontFamily: 'Arial Black', color: team ? 'white' : 'rgba(255,255,255,0.2)',
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1,
               }}>
-                {names[t - 1]}
+                {team ? getTeamName(team) : '—'}
               </span>
-              {isWinner && <span style={{ marginLeft: 'auto', fontSize: 11 }}>★</span>}
+              {team && (
+                <span style={{ fontSize: 8, color: pos === 0 ? '#f5c842' : 'rgba(255,255,255,0.5)',
+                               fontFamily: 'Arial', letterSpacing: '0.1em', flexShrink: 0 }}>
+                  {ORDINALS[pos]}
+                </span>
+              )}
             </div>
           )
         })}
       </div>
-      {!winner && (
-        <div className="text-center pb-1.5" style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)',
+      {order.length === 0 && (
+        <div className="text-center pb-1" style={{ fontSize: 8, color: 'rgba(255,255,255,0.2)',
              fontFamily: 'Arial', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
           ready
         </div>

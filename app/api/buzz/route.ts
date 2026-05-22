@@ -1,22 +1,18 @@
 import { NextResponse } from 'next/server'
 import type { TeamNum } from '@/lib/types'
 
-interface BuzzState {
-  winner: TeamNum | null
+export interface BuzzState {
+  order: TeamNum[]  // teams in the order they buzzed: order[0]=1st, order[1]=2nd, order[2]=3rd
   team1Name: string
   team2Name: string
   team3Name: string
-  locked: boolean
-  buzzAt: number | null
 }
 
 let state: BuzzState = {
-  winner: null,
+  order: [],
   team1Name: 'Juniors',
   team2Name: 'Coaches',
   team3Name: 'Small Group Guides',
-  locked: false,
-  buzzAt: null,
 }
 
 export const dynamic = 'force-dynamic'
@@ -30,14 +26,14 @@ export async function POST(request: Request) {
   const body = await request.json()
 
   if (body.action === 'buzz') {
-    if (!state.locked) {
-      state = { ...state, winner: body.team as TeamNum, locked: true, buzzAt: Date.now() }
+    const team = body.team as TeamNum
+    // Only add if not already in the order
+    if (!state.order.includes(team)) {
+      state = { ...state, order: [...state.order, team] }
     }
   } else if (body.action === 'reset') {
     state = {
-      winner: null,
-      locked: false,
-      buzzAt: null,
+      order: [],
       team1Name: body.team1Name ?? state.team1Name,
       team2Name: body.team2Name ?? state.team2Name,
       team3Name: body.team3Name ?? state.team3Name,
