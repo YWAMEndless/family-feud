@@ -59,15 +59,26 @@ export default function Home() {
               }}>
           TEAM BUZZER
         </Link>
+
+        <Link href="/reader"
+              className="block text-center py-4 px-8 rounded-lg text-lg font-display tracking-widest uppercase transition-all hover:scale-105 active:scale-95"
+              style={{
+                background: 'rgba(5,150,105,0.2)',
+                color: 'rgba(52,211,153,0.9)',
+                border: '1px solid rgba(52,211,153,0.3)',
+              }}>
+          QUESTION READER
+        </Link>
       </div>
 
       {/* Instructions */}
       <div className="mt-6 text-center max-w-md text-sm leading-relaxed"
            style={{ color: 'rgba(255,255,255,0.6)', fontFamily: 'Arial, sans-serif' }}>
-        <p>Open <strong className="text-white">Host Controls</strong> on your laptop.</p>
-        <p className="mt-1">Open <strong className="text-white">Display Screen</strong> in a second window and drag it to your projector.</p>
-        <p className="mt-1">Share <strong className="text-white">/buzz?team=1</strong> and <strong className="text-white">/buzz?team=2</strong> with each team&apos;s phone.</p>
-        <p className="mt-3 text-xs">Game display syncs on the same device. Buzzers work across devices on any network.</p>
+        <p>🎛 <strong className="text-white">Host Controls</strong> — soundbooth operator</p>
+        <p className="mt-1">📺 <strong className="text-white">Display Screen</strong> — drag to projector</p>
+        <p className="mt-1">📖 <strong className="text-white">Question Reader</strong> — MC&apos;s phone</p>
+        <p className="mt-1">🔔 <strong className="text-white">/buzz?team=1/2/3</strong> — team phones</p>
+        <p className="mt-3 text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>Password: shown at login · Display screen needs no password</p>
       </div>
     </div>
   )
