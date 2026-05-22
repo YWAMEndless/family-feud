@@ -186,18 +186,23 @@ export default function GamePage() {
       )}
 
       {/* Answer Board */}
-      <div className="flex-1 flex flex-col justify-center px-4 py-3 gap-2">
+      <div className="flex-1 flex flex-col justify-center px-4 py-2 gap-1.5">
         {gameState.phase === 'idle' ? (
           <WaitingBoard />
         ) : (
           q.answers.map((ans, i) => {
             const revealed = gameState.revealedAnswers[i]
             const isAnimating = animatingIndices.includes(i)
+            // Scale font based on text length so long answers always fit
+            const textSize = ans.text.length > 42 ? 'text-sm md:text-base' :
+                             ans.text.length > 28 ? 'text-base md:text-lg' :
+                             'text-lg md:text-xl'
             return (
               <div key={i}
                    className="flex items-center gap-0 overflow-hidden rounded-lg flex-1"
                    style={{
-                     maxHeight: 72,
+                     minHeight: 48,
+                     maxHeight: 76,
                      border: '2px solid',
                      borderColor: revealed ? '#f5c842' : 'rgba(245,200,66,0.25)',
                      boxShadow: revealed ? '0 0 12px rgba(245,200,66,0.3)' : 'none',
@@ -205,17 +210,17 @@ export default function GamePage() {
                    }}>
 
                 {/* Number */}
-                <div className="flex-shrink-0 w-12 h-full flex items-center justify-center text-xl font-display"
+                <div className="flex-shrink-0 w-11 h-full flex items-center justify-center text-lg font-display"
                      style={{ background: '#1a3c7f', color: '#f5c842' }}>
                   {i + 1}
                 </div>
 
                 {/* Answer text */}
-                <div className="flex-1 h-full flex items-center px-4 relative overflow-hidden"
+                <div className="flex-1 h-full flex items-center px-3 relative overflow-hidden"
                      style={{ background: revealed ? '#1d5db8' : '#0d1f4c' }}>
                   {revealed ? (
                     <span
-                      className="text-xl md:text-2xl font-bold uppercase tracking-wide"
+                      className={`${textSize} font-bold uppercase leading-tight`}
                       style={{
                         color: 'white',
                         fontFamily: 'Arial Black, sans-serif',
@@ -224,7 +229,7 @@ export default function GamePage() {
                       {ans.text}
                     </span>
                   ) : (
-                    <div className="w-full h-2 rounded" style={{ background: 'rgba(255,255,255,0.08)' }} />
+                    <div className="w-full h-1.5 rounded" style={{ background: 'rgba(255,255,255,0.08)' }} />
                   )}
                 </div>
 

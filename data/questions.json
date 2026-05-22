@@ -2,69 +2,136 @@
   "teamNames": ["Team 1", "Team 2"],
   "questions": [
     {
-      "question": "Name something you take to the beach",
+      "question": "Name something you should do when a child is crying at drop-off.",
       "answers": [
-        { "text": "Towel", "points": 42 },
-        { "text": "Sunscreen", "points": 28 },
-        { "text": "Umbrella", "points": 14 },
-        { "text": "Food/Snacks", "points": 8 },
-        { "text": "Sunglasses", "points": 5 },
-        { "text": "Chair", "points": 3 }
+        { "text": "Get down to eye level", "points": 35 },
+        { "text": "Use a calm, warm voice", "points": 30 },
+        { "text": "Offer a simple distraction or job", "points": 15 },
+        { "text": "Reassure the parent briefly and confidently", "points": 10 },
+        { "text": "Smile and stay relaxed", "points": 5 },
+        { "text": "Give the child a small job to feel important", "points": 5 }
       ]
     },
     {
-      "question": "Name something people do at church",
+      "question": "Name a way to get a group's attention without yelling.",
       "answers": [
-        { "text": "Pray", "points": 45 },
-        { "text": "Sing/Worship", "points": 30 },
-        { "text": "Listen to a sermon", "points": 12 },
-        { "text": "Read the Bible", "points": 7 },
-        { "text": "Socialize", "points": 4 },
-        { "text": "Take offering", "points": 2 }
+        { "text": "Stop and wait instead of competing", "points": 30 },
+        { "text": "Use a call-and-response or signal", "points": 25 },
+        { "text": "Move closer to the group", "points": 15 },
+        { "text": "Keep directions short and clear", "points": 10 },
+        { "text": "Lower your voice so they lean in", "points": 10 },
+        { "text": "Use a countdown (3, 2, 1, eyes on me)", "points": 10 }
       ]
     },
     {
-      "question": "Name a reason someone would be late to church",
+      "question": "Name a way to include a kid who's standing alone.",
       "answers": [
-        { "text": "Overslept", "points": 48 },
-        { "text": "Kids", "points": 25 },
-        { "text": "Traffic", "points": 13 },
-        { "text": "Couldn't find parking", "points": 8 },
-        { "text": "Got lost", "points": 4 },
-        { "text": "Forgot it was Sunday", "points": 2 }
+        { "text": "Go to them quickly", "points": 30 },
+        { "text": "Use their name", "points": 20 },
+        { "text": "Pair them with a kind peer", "points": 20 },
+        { "text": "Invite them into a specific role or task", "points": 15 },
+        { "text": "Get down to their level and start a conversation", "points": 10 },
+        { "text": "Bring the group's activity to them", "points": 5 }
       ]
     },
     {
-      "question": "Name something you find in a pastor's office",
+      "question": "Name something that is NOT allowed under the dress code.",
       "answers": [
-        { "text": "Bible", "points": 50 },
-        { "text": "Books", "points": 22 },
-        { "text": "Desk", "points": 15 },
-        { "text": "Cross", "points": 8 },
-        { "text": "Computer", "points": 3 },
-        { "text": "Couch/Chair", "points": 2 }
+        { "text": "Sports bras, crop tops, or halter tops", "points": 30 },
+        { "text": "Shorts shorter than mid-thigh", "points": 20 },
+        { "text": "Leggings or yoga pants", "points": 15 },
+        { "text": "Transparent clothing (incl. when wet)", "points": 15 },
+        { "text": "Unsafe footwear during activities", "points": 10 },
+        { "text": "Shirts that extend past the shorts", "points": 10 }
       ]
     },
     {
-      "question": "Name a Bible story everyone knows",
+      "question": "Name a rule from the Restroom Rule of 2.",
       "answers": [
-        { "text": "Noah's Ark", "points": 40 },
-        { "text": "David and Goliath", "points": 25 },
-        { "text": "Adam and Eve", "points": 18 },
-        { "text": "Jonah and the Whale", "points": 10 },
-        { "text": "The Nativity/Christmas", "points": 5 },
-        { "text": "Moses and the Red Sea", "points": 2 }
+        { "text": "At least 2 campers and 2 volunteers present", "points": 35 },
+        { "text": "No camper alone in the restroom", "points": 25 },
+        { "text": "Volunteers do not enter stalls", "points": 15 },
+        { "text": "Two volunteers present if assistance is needed", "points": 10 },
+        { "text": "Captain must be informed before going", "points": 10 },
+        { "text": "No restroom by the Story Café", "points": 5 }
       ]
     },
     {
-      "question": "Name something you might say when you're excited",
+      "question": "Name a rule about cell phones at camp.",
       "answers": [
-        { "text": "Wow!", "points": 38 },
-        { "text": "Yes!", "points": 27 },
-        { "text": "Oh my goodness!", "points": 18 },
-        { "text": "Hallelujah!", "points": 10 },
-        { "text": "No way!", "points": 5 },
-        { "text": "Amen!", "points": 2 }
+        { "text": "No phone use during camp hours (8:15am–12:45pm)", "points": 35 },
+        { "text": "Keep phones put away while campers are on campus", "points": 20 },
+        { "text": "Keep phones silenced", "points": 15 },
+        { "text": "Repeated violations = phone goes to the Phone Hotel", "points": 10 },
+        { "text": "Verbal warning given first", "points": 10 },
+        { "text": "Continued violations = parent/guardian notified", "points": 10 }
+      ]
+    },
+    {
+      "question": "Name a rule about camper pickup.",
+      "answers": [
+        { "text": "Only release to adults with pickup wristband", "points": 40 },
+        { "text": "Never release a camper if you're unsure", "points": 15 },
+        { "text": "Know who is NOT permitted to pick up a camper", "points": 15 },
+        { "text": "Follow any parent-noted restrictions carefully", "points": 15 },
+        { "text": "Contact your Color Captain if uncertain", "points": 10 },
+        { "text": "Stay with the camper until pickup is complete", "points": 5 }
+      ]
+    },
+    {
+      "question": "Name something a volunteer must NEVER do with a camper.",
+      "answers": [
+        { "text": "Be alone one-on-one", "points": 35 },
+        { "text": "Use physical discipline", "points": 20 },
+        { "text": "Text or DM them outside of church", "points": 15 },
+        { "text": "Touch them in a way that makes them uncomfortable", "points": 10 },
+        { "text": "Take or post photos of them", "points": 10 },
+        { "text": "Release them without a pickup wristband", "points": 10 }
+      ]
+    },
+    {
+      "question": "Name something that makes a great KidsGames volunteer.",
+      "answers": [
+        { "text": "Leads by example in attitude, words, and actions", "points": 30 },
+        { "text": "Jumps in to help wherever needed", "points": 20 },
+        { "text": "Shows up on time", "points": 15 },
+        { "text": "Stays engaged the whole morning", "points": 15 },
+        { "text": "Encourages campers with kindness and patience", "points": 15 },
+        { "text": "Encourages other volunteers too", "points": 5 }
+      ]
+    },
+    {
+      "question": "A camper runs up and gives you a big hug. Name an appropriate response.",
+      "answers": [
+        { "text": "A side hug — YES!", "points": 35 },
+        { "text": "A high five", "points": 20 },
+        { "text": "A front hug — NOT okay", "points": 15 },
+        { "text": "A fist bump", "points": 15 },
+        { "text": "Verbal encouragement (So good to see you!)", "points": 10 },
+        { "text": "Gently redirect without making them feel rejected", "points": 5 }
+      ]
+    },
+    {
+      "question": "Name a red flag that should make you pause and check in with staff.",
+      "answers": [
+        { "text": "A volunteer alone one-on-one with a camper", "points": 30 },
+        { "text": "Any inappropriate touch", "points": 25 },
+        { "text": "A camper who says they were hurt or feel unsafe", "points": 15 },
+        { "text": "A private conversation away from others", "points": 15 },
+        { "text": "A volunteer contacting a camper outside of church", "points": 10 },
+        { "text": "A volunteer ignoring safety rules", "points": 5 }
+      ]
+    },
+    {
+      "question": "Name something every volunteer should know about Safety First.",
+      "answers": [
+        { "text": "Bathroom Rule of 2: 2 volunteers, 2 campers", "points": 25 },
+        { "text": "Never be alone with a camper", "points": 25 },
+        { "text": "Always stay in sight of others", "points": 15 },
+        { "text": "Side hugs or high fives only — no front hugs or piggybacks", "points": 15 },
+        { "text": "Red wristbands = allergies — stay alert", "points": 10 },
+        { "text": "Always know where your campers are", "points": 5 },
+        { "text": "See something? Say something!", "points": 5 }
       ]
     }
   ]
