@@ -139,7 +139,15 @@ export default function GamePage() {
       if ((buzz.data as any)?.value) setBuzzState((buzz.data as any).value)
     })
 
-    // Supabase Realtime — instant push whenever host saves state
+    // Poll buzz state every 600ms — guarantees the buzzer widget stays current
+    const pollId = setInterval(async () => {
+      try {
+        const res = await fetch('/api/buzz', { cache: 'no-store' })
+        if (res.ok) setBuzzState(await res.json())
+      } catch {}
+    }, 600)
+
+    // Supabase Realtime on top for instant game + buzz updates
     const channel = sb.channel('game-kv-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'game_kv' },
         (payload) => {
@@ -151,6 +159,7 @@ export default function GamePage() {
 
     return () => {
       ch.close()
+      clearInterval(pollId)
       sb.removeChannel(channel)
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
