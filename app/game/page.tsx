@@ -169,25 +169,19 @@ export default function GamePage() {
          style={{ background: 'linear-gradient(180deg, #0B1437 0%, #0d1f4c 100%)' }}>
 
       {/* Title bar: buzzer widget left | logo center | balance right */}
-      <div className="flex-shrink-0 flex items-center py-2 px-3 gap-2"
+      <div className="flex-shrink-0 flex items-center py-1 px-3 gap-2"
            style={{ background: 'linear-gradient(90deg, #0B1437, #1a3c7f, #0B1437)' }}>
-
-        {/* Left: buzzer status widget */}
-        <div className="w-40 flex-shrink-0">
+        <div className="w-44 flex-shrink-0">
           <BuzzerWidget buzz={buzzState} />
         </div>
-
-        {/* Center: logo */}
         <div className="flex-1 flex justify-center">
-          <Image src="/logo.png" alt="Family Feud" width={320} height={213}
-                 priority style={{ height: 68, width: 'auto', objectFit: 'contain' }} />
+          <Image src="/logo.png" alt="Family Feud" width={480} height={320}
+                 priority style={{ height: 110, width: 'auto', objectFit: 'contain' }} />
         </div>
-
-        {/* Right: balance spacer */}
-        <div className="w-40 flex-shrink-0" />
+        <div className="w-44 flex-shrink-0" />
       </div>
 
-      {/* Dot lights strip */}
+      {/* Horizontal dot strip */}
       <DotLights />
 
       {/* Question — visible once playing */}
@@ -204,7 +198,6 @@ export default function GamePage() {
           </p>
         </div>
       ) : (
-        /* Idle — show "Survey Says" teaser so screen is never blank */
         <div className="flex-shrink-0 mx-4 py-3 px-6 rounded-xl text-center"
              style={{ background: 'rgba(255,255,255,0.04)', border: '2px solid rgba(245,200,66,0.2)' }}>
           <p className="text-2xl font-display tracking-widest"
@@ -219,8 +212,14 @@ export default function GamePage() {
         </div>
       )}
 
-      {/* Answer Board */}
-      <div className="flex-1 flex flex-col justify-center px-4 py-2 gap-1.5">
+      {/* Answer Board with vertical dot borders on each side */}
+      <div className="flex flex-1 overflow-hidden">
+
+        {/* Left vertical dots */}
+        <VerticalDots />
+
+        {/* Answers */}
+        <div className="flex-1 flex flex-col justify-center py-2 gap-1.5">
         {(
           q.answers.map((ans, i) => {
             const revealed = live.revealedAnswers[i] ?? false
@@ -277,9 +276,14 @@ export default function GamePage() {
             )
           })
         )}
-      </div>
+        </div>{/* end answers flex-1 */}
 
-      {/* Dot lights strip */}
+        {/* Right vertical dots */}
+        <VerticalDots />
+
+      </div>{/* end answer board row */}
+
+      {/* Horizontal dot strip */}
       <DotLights />
 
       {/* Strikes + round points row */}
@@ -414,21 +418,36 @@ function BuzzerWidget({ buzz }: { buzz: BuzzState | null }) {
 }
 
 function DotLights() {
-  // 40 dots — CSS clamps to screen width via flex-wrap
   const dots = Array.from({ length: 40 })
   return (
     <div className="flex-shrink-0 flex flex-wrap justify-center items-center gap-x-2 gap-y-1 px-4 py-1.5">
       {dots.map((_, i) => (
-        <div key={i}
-             className="rounded-full"
+        <div key={i} className="rounded-full flex-shrink-0"
              style={{
-               width: 9,
-               height: 9,
-               flexShrink: 0,
+               width: 9, height: 9,
                background: '#f97316',
                boxShadow: '0 0 5px #f97316, 0 0 10px #f9731655',
                animation: 'dotPulse 2s ease-in-out infinite',
                animationDelay: `${(i % 7) * 0.28}s`,
+             }} />
+      ))}
+    </div>
+  )
+}
+
+function VerticalDots() {
+  const dots = Array.from({ length: 18 })
+  return (
+    <div className="flex-shrink-0 flex flex-col justify-around items-center py-1"
+         style={{ width: 28, paddingLeft: 4, paddingRight: 4 }}>
+      {dots.map((_, i) => (
+        <div key={i} className="rounded-full"
+             style={{
+               width: 10, height: 10,
+               background: '#f97316',
+               boxShadow: '0 0 6px #f97316, 0 0 14px #f9731666',
+               animation: 'dotPulse 2s ease-in-out infinite',
+               animationDelay: `${(i % 6) * 0.33}s`,
              }} />
       ))}
     </div>

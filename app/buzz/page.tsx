@@ -73,12 +73,12 @@ function BuzzerInner() {
     sb.from('game_kv').select('value').eq('key', 'buzz').single()
       .then(({ data }) => { const v = (data as any)?.value; if (v) { setBuzzState(v); prevOrderRef.current = (v as BuzzState).order } })
 
-    // Realtime updates
+    // Realtime — no server-side filter, handle client-side for reliability
     const channel = sb.channel(`buzz-phone-${team}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'game_kv', filter: 'key=eq.buzz' },
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'game_kv' },
         (payload) => {
-          const row = payload.new as { value: BuzzState }
-          if (!row.value) return
+          const row = payload.new as { key: string; value: BuzzState }
+          if (row.key !== 'buzz' || !row.value) return
           const prev = prevOrderRef.current
           // Play sound when my position is newly confirmed
           if (team && row.value.order.includes(team) && !prev.includes(team)) {

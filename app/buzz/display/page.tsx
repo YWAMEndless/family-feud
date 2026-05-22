@@ -71,12 +71,12 @@ export default function BuzzDisplayPage() {
     sb.from('game_kv').select('value').eq('key', 'buzz').single()
       .then(({ data }) => { if (data && (data as any).value) handleBuzzData((data as any).value as BuzzState) })
 
-    // Realtime updates
+    // Realtime — listen to all game_kv changes, filter client-side for buzz key
     const channel = sb.channel('buzz-display-kv')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'game_kv', filter: 'key=eq.buzz' },
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'game_kv' },
         (payload) => {
-          const row = payload.new as { value: BuzzState }
-          if (row.value) handleBuzzData(row.value)
+          const row = payload.new as { key: string; value: BuzzState }
+          if (row.key === 'buzz' && row.value) handleBuzzData(row.value)
         })
       .subscribe()
 
