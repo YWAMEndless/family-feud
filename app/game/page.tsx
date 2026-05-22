@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
+import Image from 'next/image'
 import type { GameState, SyncMessage, TeamNum } from '@/lib/types'
 import { TEAM_COLORS } from '@/lib/types'
 import questionsData from '@/data/questions.json'
@@ -167,27 +168,25 @@ export default function GamePage() {
     <div className="min-h-screen flex flex-col tv-overlay"
          style={{ background: 'linear-gradient(180deg, #0B1437 0%, #0d1f4c 100%)' }}>
 
-      {/* Title bar */}
-      <div className="flex-shrink-0 py-4 text-center"
+      {/* Title bar with logo */}
+      <div className="flex-shrink-0 flex items-center justify-center py-2"
            style={{ background: 'linear-gradient(90deg, #0B1437, #1a3c7f, #0B1437)' }}>
-        <span className="text-4xl md:text-5xl font-display tracking-[0.2em]"
-              style={{
-                color: '#f5c842',
-                textShadow: '0 0 15px rgba(245,200,66,0.4), 2px 2px 0 #c99a00',
-              }}>
-          FAMILY FEUD
-        </span>
+        <Image src="/logo.png" alt="Family Feud" width={320} height={213}
+               priority style={{ height: 72, width: 'auto', objectFit: 'contain' }} />
       </div>
+
+      {/* Dot lights strip */}
+      <DotLights />
 
       {/* Question */}
       {gameState.phase !== 'idle' && (
-        <div className="flex-shrink-0 mx-4 mt-3 py-4 px-6 rounded-xl text-center"
+        <div className="flex-shrink-0 mx-4 py-3 px-6 rounded-xl text-center"
              style={{
                background: 'linear-gradient(135deg, #1a3c7f, #1d5db8)',
                border: '2px solid #f5c842',
                boxShadow: '0 0 20px rgba(245,200,66,0.2)',
              }}>
-          <p className="text-2xl md:text-3xl font-bold leading-tight"
+          <p className="text-xl md:text-2xl font-bold leading-tight"
              style={{ color: 'white', fontFamily: 'Arial Black, sans-serif' }}>
             {q.question}
           </p>
@@ -256,6 +255,9 @@ export default function GamePage() {
         )}
       </div>
 
+      {/* Dot lights strip */}
+      <DotLights />
+
       {/* Strikes + round points row */}
       <div className="flex-shrink-0 flex items-center justify-center gap-4 px-4 pt-1 pb-1">
         <div className="flex gap-2">
@@ -319,14 +321,35 @@ export default function GamePage() {
   )
 }
 
+function DotLights() {
+  // 40 dots — CSS clamps to screen width via flex-wrap
+  const dots = Array.from({ length: 40 })
+  return (
+    <div className="flex-shrink-0 flex flex-wrap justify-center items-center gap-x-2 gap-y-1 px-4 py-1.5">
+      {dots.map((_, i) => (
+        <div key={i}
+             className="rounded-full"
+             style={{
+               width: 9,
+               height: 9,
+               flexShrink: 0,
+               background: '#f97316',
+               boxShadow: '0 0 5px #f97316, 0 0 10px #f9731655',
+               animation: 'dotPulse 2s ease-in-out infinite',
+               animationDelay: `${(i % 7) * 0.28}s`,
+             }} />
+      ))}
+    </div>
+  )
+}
+
 function WaitingBoard() {
   return (
-    <div className="flex flex-col items-center justify-center gap-6 py-8">
-      <div className="text-center space-y-2">
-        <div className="text-5xl font-display" style={{ color: '#f5c842' }}>SURVEY SAYS!</div>
-        <div className="text-lg animate-pulse" style={{ color: 'rgba(255,255,255,0.5)', fontFamily: 'Arial' }}>
-          Get ready…
-        </div>
+    <div className="flex flex-col items-center justify-center gap-4 py-6">
+      <Image src="/logo.png" alt="Family Feud" width={400} height={267}
+             style={{ height: 120, width: 'auto', objectFit: 'contain' }} />
+      <div className="text-xl animate-pulse" style={{ color: 'rgba(255,255,255,0.4)', fontFamily: 'Arial' }}>
+        Get ready…
       </div>
     </div>
   )

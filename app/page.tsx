@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 
 export default function Home() {
   return (
@@ -7,16 +8,10 @@ export default function Home() {
 
       {/* Logo */}
       <div className="text-center">
-        <div className="text-6xl md:text-8xl font-display tracking-wider"
-             style={{ color: '#f5c842', textShadow: '0 0 20px rgba(245,200,66,0.5), 3px 3px 0 #c99a00' }}>
-          FAMILY
-        </div>
-        <div className="text-6xl md:text-8xl font-display tracking-wider mt-1"
-             style={{ color: 'white', textShadow: '3px 3px 0 #1a3c7f, 0 0 20px rgba(255,255,255,0.2)' }}>
-          FEUD
-        </div>
-        <div className="mt-4 text-lg tracking-[0.3em] uppercase"
-             style={{ color: '#f5c842', opacity: 0.8 }}>
+        <Image src="/logo.png" alt="Family Feud" width={480} height={320}
+               priority style={{ height: 160, width: 'auto', objectFit: 'contain', margin: '0 auto' }} />
+        <div className="mt-2 text-base tracking-[0.3em] uppercase"
+             style={{ color: '#f5c842', opacity: 0.7, fontFamily: 'Arial' }}>
           Interactive Edition
         </div>
       </div>

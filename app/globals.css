@@ -88,6 +88,12 @@ body {
   box-shadow: 0 0 8px rgba(245, 200, 66, 0.4), inset 0 0 8px rgba(245, 200, 66, 0.1);
 }
 
+/* Dot lights */
+@keyframes dotPulse {
+  0%, 100% { opacity: 0.55; box-shadow: 0 0 4px #f97316; }
+  50% { opacity: 1; box-shadow: 0 0 10px #f97316, 0 0 20px #f9731688; }
+}
+
 /* Steal mode pulse */
 .steal-pulse {
   animation: stealPulse 1s ease-in-out infinite;
