@@ -65,14 +65,22 @@ export default function BuzzDisplayPage() {
   }
 
   useEffect(() => {
+    let active = true
+
+    async function fetchBuzz() {
+      try {
+        const res = await fetch('/api/buzz', { cache: 'no-store' })
+        if (res.ok && active) handleBuzzData(await res.json())
+      } catch {}
+    }
+
+    // Immediate load + poll every 600ms (reliable across all setups)
+    fetchBuzz()
+    const pollId = setInterval(fetchBuzz, 600)
+
+    // Supabase Realtime on top — instant when REPLICA IDENTITY FULL is set
     const sb = getSupabase()
-
-    // Load initial state
-    sb.from('game_kv').select('value').eq('key', 'buzz').single()
-      .then(({ data }) => { if (data && (data as any).value) handleBuzzData((data as any).value as BuzzState) })
-
-    // Realtime — listen to all game_kv changes, filter client-side for buzz key
-    const channel = sb.channel('buzz-display-kv')
+    const channel = sb.channel('buzz-display-rt')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'game_kv' },
         (payload) => {
           const row = payload.new as { key: string; value: BuzzState }
@@ -80,17 +88,22 @@ export default function BuzzDisplayPage() {
         })
       .subscribe()
 
-    return () => { sb.removeChannel(channel) }
+    return () => {
+      active = false
+      clearInterval(pollId)
+      sb.removeChannel(channel)
+    }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function reset() {
+    // Optimistic clear immediately
+    const cleared: BuzzState = { order: [], team1Name: names[0], team2Name: names[1], team3Name: names[2] }
+    handleBuzzData(cleared)
     await fetch('/api/buzz', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'reset', team1Name: names[0], team2Name: names[1], team3Name: names[2] }),
     })
-    setState(s => ({ ...s, order: [] }))
-    prevOrderRef.current = []
   }
 
   async function saveNames() {

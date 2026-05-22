@@ -66,31 +66,48 @@ function BuzzerInner() {
 
   const prevOrderRef = useRef<TeamNum[]>([])
 
+  function applyBuzzData(data: BuzzState) {
+    const prev = prevOrderRef.current
+    // Play sound when my position is newly confirmed by server
+    if (team && data.order.includes(team) && !prev.includes(team)) {
+      const position = data.order.indexOf(team)
+      try { playPlace(getAudio(), position) } catch {}
+    }
+    prevOrderRef.current = data.order
+    setBuzzState(data)
+    // Clear optimistic lock if server reset happened
+    if (data.order.length === 0) setSending(false)
+  }
+
   useEffect(() => {
+    if (!team) return
+    let active = true
+
+    async function fetchBuzz() {
+      try {
+        const res = await fetch('/api/buzz', { cache: 'no-store' })
+        if (res.ok && active) applyBuzzData(await res.json())
+      } catch {}
+    }
+
+    fetchBuzz()
+    const pollId = setInterval(fetchBuzz, 600)
+
+    // Realtime on top for instant updates
     const sb = getSupabase()
-
-    // Load initial state
-    sb.from('game_kv').select('value').eq('key', 'buzz').single()
-      .then(({ data }) => { const v = (data as any)?.value; if (v) { setBuzzState(v); prevOrderRef.current = (v as BuzzState).order } })
-
-    // Realtime — no server-side filter, handle client-side for reliability
-    const channel = sb.channel(`buzz-phone-${team}`)
+    const channel = sb.channel(`buzz-phone-rt-${team}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'game_kv' },
         (payload) => {
           const row = payload.new as { key: string; value: BuzzState }
-          if (row.key !== 'buzz' || !row.value) return
-          const prev = prevOrderRef.current
-          // Play sound when my position is newly confirmed
-          if (team && row.value.order.includes(team) && !prev.includes(team)) {
-            const position = row.value.order.indexOf(team)
-            try { playPlace(getAudio(), position) } catch {}
-          }
-          prevOrderRef.current = row.value.order
-          setBuzzState(row.value)
+          if (row.key === 'buzz' && row.value) applyBuzzData(row.value)
         })
       .subscribe()
 
-    return () => { sb.removeChannel(channel) }
+    return () => {
+      active = false
+      clearInterval(pollId)
+      sb.removeChannel(channel)
+    }
   }, [team]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleBuzz() {
