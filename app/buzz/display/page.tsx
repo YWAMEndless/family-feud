@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import type { TeamNum } from '@/lib/types'
 import { TEAM_COLORS } from '@/lib/types'
+import { getSupabase } from '@/lib/supabase'
 
 interface BuzzState {
   order: TeamNum[]
@@ -49,34 +50,37 @@ export default function BuzzDisplayPage() {
     })
   }
 
-  useEffect(() => {
-    let ignore = false
-    async function poll() {
-      try {
-        const res = await fetch('/api/buzz', { cache: 'no-store' })
-        if (res.ok && !ignore) {
-          const data: BuzzState = await res.json()
-          const prev = prevOrderRef.current
-          // Find newly added teams and animate them
-          const newTeams = data.order.filter(t => !prev.includes(t))
-          if (newTeams.length > 0) {
-            const newPositions = newTeams.map(t => data.order.indexOf(t))
-            setAnimKeys(k => [...k, ...newPositions])
-            setTimeout(() => setAnimKeys([]), 800)
-            try {
-              const ctx = getAudio()
-              newPositions.forEach(p => playBuzz(p, ctx))
-            } catch {}
-          }
-          prevOrderRef.current = data.order
-          setState(data)
-          setNames([data.team1Name, data.team2Name, data.team3Name])
-        }
-      } catch {}
+  function handleBuzzData(data: BuzzState) {
+    const prev = prevOrderRef.current
+    const newTeams = data.order.filter(t => !prev.includes(t))
+    if (newTeams.length > 0) {
+      const newPositions = newTeams.map(t => data.order.indexOf(t))
+      setAnimKeys(k => [...k, ...newPositions])
+      setTimeout(() => setAnimKeys([]), 800)
+      try { const ctx = getAudio(); newPositions.forEach(p => playBuzz(p, ctx)) } catch {}
     }
-    poll()
-    const id = setInterval(poll, 400)
-    return () => { ignore = true; clearInterval(id) }
+    prevOrderRef.current = data.order
+    setState(data)
+    setNames([data.team1Name, data.team2Name, data.team3Name])
+  }
+
+  useEffect(() => {
+    const sb = getSupabase()
+
+    // Load initial state
+    sb.from('game_kv').select('value').eq('key', 'buzz').single()
+      .then(({ data }) => { if (data && (data as any).value) handleBuzzData((data as any).value as BuzzState) })
+
+    // Realtime updates
+    const channel = sb.channel('buzz-display-kv')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'game_kv', filter: 'key=eq.buzz' },
+        (payload) => {
+          const row = payload.new as { value: BuzzState }
+          if (row.value) handleBuzzData(row.value)
+        })
+      .subscribe()
+
+    return () => { sb.removeChannel(channel) }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function reset() {

@@ -1,29 +1,32 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import type { GameState } from '@/lib/types'
+import { getSupabase } from '@/lib/supabase'
 import questionsData from '@/data/questions.json'
 
 export default function ReaderPage() {
   const [gameState, setGameState] = useState<GameState | null>(null)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
-  const pollRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
-    async function poll() {
-      try {
-        const res = await fetch('/api/state', { cache: 'no-store' })
-        if (res.ok) {
-          const data = await res.json()
-          if (data) {
-            setGameState(data)
-            setLastUpdated(new Date())
-          }
-        }
-      } catch {}
-    }
-    poll()
-    pollRef.current = setInterval(poll, 2000)
-    return () => { if (pollRef.current) clearInterval(pollRef.current) }
+    const sb = getSupabase()
+
+    // Load initial state
+    sb.from('game_kv').select('value').eq('key', 'game').single()
+      .then(({ data }) => {
+        const v = (data as any)?.value; if (v) { setGameState(v); setLastUpdated(new Date()) }
+      })
+
+    // Realtime updates
+    const channel = sb.channel('reader-kv')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'game_kv', filter: 'key=eq.game' },
+        (payload) => {
+          const row = payload.new as { value: GameState }
+          if (row.value) { setGameState(row.value); setLastUpdated(new Date()) }
+        })
+      .subscribe()
+
+    return () => { sb.removeChannel(channel) }
   }, [])
 
   const qIndex = gameState?.currentQuestionIndex ?? 0

@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import type { GameState, SyncMessage, TeamNum } from '@/lib/types'
 import { TEAM_COLORS } from '@/lib/types'
+import { getSupabase } from '@/lib/supabase'
 import questionsData from '@/data/questions.json'
 
 const TEAMS: TeamNum[] = [1, 2, 3]
@@ -118,34 +119,39 @@ export default function GamePage() {
     }
   }
 
-  // BroadcastChannel listener + request initial state
+  // BroadcastChannel (same-device) + Supabase Realtime (cross-device)
   useEffect(() => {
+    // BroadcastChannel for same-device host↔display
     const ch = new BroadcastChannel(CHANNEL)
     ch.onmessage = (e: MessageEvent<SyncMessage>) => {
-      if (e.data.type === 'STATE_UPDATE' && e.data.state) {
-        applyState(e.data.state)
-      } else if (e.data.type === 'SOUND' && e.data.sound) {
-        if (audioCtxRef.current) playSound(e.data.sound, audioCtxRef.current)
-      }
+      if (e.data.type === 'STATE_UPDATE' && e.data.state) applyState(e.data.state)
+      else if (e.data.type === 'SOUND' && e.data.sound && audioCtxRef.current) playSound(e.data.sound, audioCtxRef.current)
     }
-    // Request current state from host
     ch.postMessage({ type: 'REQUEST_STATE' } as SyncMessage)
 
-    // Poll game state (cross-device fallback) and buzz state together
-    pollRef.current = setInterval(async () => {
-      try {
-        const [stateRes, buzzRes] = await Promise.all([
-          fetch('/api/state', { cache: 'no-store' }),
-          fetch('/api/buzz', { cache: 'no-store' }),
-        ])
-        if (stateRes.ok) { const d = await stateRes.json(); if (d) applyState(d) }
-        if (buzzRes.ok) { const d = await buzzRes.json(); if (d) setBuzzState(d) }
-      } catch {}
-    }, 600)
+    // Load initial state from Supabase
+    const sb = getSupabase()
+    Promise.all([
+      sb.from('game_kv').select('value').eq('key', 'game').single(),
+      sb.from('game_kv').select('value').eq('key', 'buzz').single(),
+    ]).then(([game, buzz]) => {
+      if ((game.data as any)?.value) applyState((game.data as any).value)
+      if ((buzz.data as any)?.value) setBuzzState((buzz.data as any).value)
+    })
+
+    // Supabase Realtime — instant push whenever host saves state
+    const channel = sb.channel('game-kv-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'game_kv' },
+        (payload) => {
+          const row = payload.new as { key: string; value: unknown }
+          if (row.key === 'game' && row.value) applyState(row.value as GameState)
+          if (row.key === 'buzz' && row.value) setBuzzState(row.value as BuzzState)
+        })
+      .subscribe()
 
     return () => {
       ch.close()
-      if (pollRef.current) clearInterval(pollRef.current)
+      sb.removeChannel(channel)
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 

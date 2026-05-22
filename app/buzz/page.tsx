@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import type { TeamNum } from '@/lib/types'
 import { TEAM_COLORS } from '@/lib/types'
+import { getSupabase } from '@/lib/supabase'
 
 interface BuzzState {
   order: TeamNum[]
@@ -63,29 +64,34 @@ function BuzzerInner() {
     })
   }
 
-  const prevOrderLenRef = useRef(0)
+  const prevOrderRef = useRef<TeamNum[]>([])
 
   useEffect(() => {
-    async function poll() {
-      try {
-        const res = await fetch('/api/buzz', { cache: 'no-store' })
-        if (res.ok) {
-          const data: BuzzState = await res.json()
-          // Play sound when MY team's position just got registered
-          if (team && data.order.includes(team) && !buzzState.order.includes(team)) {
-            const position = data.order.indexOf(team)
+    const sb = getSupabase()
+
+    // Load initial state
+    sb.from('game_kv').select('value').eq('key', 'buzz').single()
+      .then(({ data }) => { const v = (data as any)?.value; if (v) { setBuzzState(v); prevOrderRef.current = (v as BuzzState).order } })
+
+    // Realtime updates
+    const channel = sb.channel(`buzz-phone-${team}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'game_kv', filter: 'key=eq.buzz' },
+        (payload) => {
+          const row = payload.new as { value: BuzzState }
+          if (!row.value) return
+          const prev = prevOrderRef.current
+          // Play sound when my position is newly confirmed
+          if (team && row.value.order.includes(team) && !prev.includes(team)) {
+            const position = row.value.order.indexOf(team)
             try { playPlace(getAudio(), position) } catch {}
           }
-          prevOrderLenRef.current = data.order.length
-          setBuzzState(data)
-        }
-      } catch {}
-    }
+          prevOrderRef.current = row.value.order
+          setBuzzState(row.value)
+        })
+      .subscribe()
 
-    poll()
-    pollRef.current = setInterval(poll, 400)
-    return () => { if (pollRef.current) clearInterval(pollRef.current) }
-  }, [buzzState.order, team]) // eslint-disable-line react-hooks/exhaustive-deps
+    return () => { sb.removeChannel(channel) }
+  }, [team]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleBuzz() {
     if (!team || sending) return

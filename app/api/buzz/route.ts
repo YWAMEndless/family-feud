@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { TeamNum } from '@/lib/types'
+import { serverSupabase } from '@/lib/supabase'
 
 export interface BuzzState {
   order: TeamNum[]
@@ -8,33 +9,7 @@ export interface BuzzState {
   team3Name: string
 }
 
-const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL
-const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN
-const KEY = 'ff-buzz-state'
-
-async function redisGet(): Promise<BuzzState | null> {
-  try {
-    const res = await fetch(REDIS_URL!, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${REDIS_TOKEN}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(['GET', KEY]),
-    })
-    const { result } = await res.json()
-    return result ? (JSON.parse(result) as BuzzState) : null
-  } catch { return null }
-}
-
-async function redisSet(state: BuzzState): Promise<void> {
-  try {
-    await fetch(REDIS_URL!, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${REDIS_TOKEN}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(['SET', KEY, JSON.stringify(state), 'EX', 86400]),
-    })
-  } catch {}
-}
-
-let memState: BuzzState = {
+const DEFAULT: BuzzState = {
   order: [],
   team1Name: 'Juniors',
   team2Name: 'Coaches',
@@ -42,17 +17,29 @@ let memState: BuzzState = {
 }
 
 export const dynamic = 'force-dynamic'
-export const runtime = 'nodejs'
+
+async function getCurrent(): Promise<BuzzState> {
+  const { data } = await serverSupabase()
+    .from('game_kv')
+    .select('value')
+    .eq('key', 'buzz')
+    .single()
+  return (data?.value as BuzzState) ?? DEFAULT
+}
+
+async function save(state: BuzzState) {
+  await serverSupabase()
+    .from('game_kv')
+    .upsert({ key: 'buzz', value: state, updated_at: new Date().toISOString() })
+}
 
 export async function GET() {
-  const state = REDIS_URL && REDIS_TOKEN ? (await redisGet()) ?? memState : memState
-  return NextResponse.json(state)
+  return NextResponse.json(await getCurrent())
 }
 
 export async function POST(request: Request) {
   const body = await request.json()
-  const current = REDIS_URL && REDIS_TOKEN ? (await redisGet()) ?? memState : memState
-
+  const current = await getCurrent()
   let next: BuzzState = current
 
   if (body.action === 'buzz') {
@@ -66,7 +53,6 @@ export async function POST(request: Request) {
     next = { ...current, team1Name: body.team1Name ?? current.team1Name, team2Name: body.team2Name ?? current.team2Name, team3Name: body.team3Name ?? current.team3Name }
   }
 
-  memState = next
-  if (REDIS_URL && REDIS_TOKEN) await redisSet(next)
+  await save(next)
   return NextResponse.json(next)
 }
