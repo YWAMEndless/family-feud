@@ -139,19 +139,19 @@ export default function HostPage() {
   }
 
   async function resetGame() {
+    // Dismiss confirm UI immediately so it doesn't feel broken
+    setConfirmReset(false)
+    showFlash('Resetting…')
     const fresh = makeInitialState()
-    // Preserve team names if the user customised them
     fresh.team1Name = state.team1Name
     fresh.team2Name = state.team2Name
     fresh.team3Name = state.team3Name
     update(fresh)
-    // Also clear buzzers
     await fetch('/api/buzz', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'reset', team1Name: fresh.team1Name, team2Name: fresh.team2Name, team3Name: fresh.team3Name }),
     }).catch(() => {})
-    setConfirmReset(false)
     showFlash('Game reset! All scores cleared.')
   }
 

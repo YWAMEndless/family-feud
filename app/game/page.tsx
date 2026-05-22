@@ -150,28 +150,13 @@ export default function GamePage() {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Render ──────────────────────────────────────────────────────────────
-  if (!gameState) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-6"
-           style={{ background: 'linear-gradient(180deg, #0B1437 0%, #1a3c7f 50%, #0B1437 100%)' }}>
-        <div className="text-center">
-          <div className="text-7xl font-display tracking-wider"
-               style={{ color: '#f5c842', textShadow: '0 0 20px rgba(245,200,66,0.5)' }}>
-            FAMILY
-          </div>
-          <div className="text-7xl font-display tracking-wider mt-1"
-               style={{ color: 'white', textShadow: '3px 3px 0 #1a3c7f' }}>
-            FEUD
-          </div>
-        </div>
-        <div className="text-lg animate-pulse" style={{ color: 'rgba(255,255,255,0.5)', fontFamily: 'Arial' }}>
-          Waiting for host to start…
-        </div>
-      </div>
-    )
-  }
+  // Use live state if available, otherwise show a default idle board so the
+  // screen is never blank while the host is setting up
+  const defaultState = makeDisplayDefault()
+  const live = gameState ?? defaultState
+  const isConnected = gameState !== null
 
-  const q = questionsData.questions[gameState.currentQuestionIndex]
+  const q = questionsData.questions[live.currentQuestionIndex]
 
   return (
     <div className="min-h-screen flex flex-col tv-overlay"
@@ -199,8 +184,8 @@ export default function GamePage() {
       {/* Dot lights strip */}
       <DotLights />
 
-      {/* Question */}
-      {gameState.phase !== 'idle' && (
+      {/* Question — visible once playing */}
+      {live.phase !== 'idle' ? (
         <div className="flex-shrink-0 mx-4 py-3 px-6 rounded-xl text-center"
              style={{
                background: 'linear-gradient(135deg, #1a3c7f, #1d5db8)',
@@ -212,15 +197,27 @@ export default function GamePage() {
             {q.question}
           </p>
         </div>
+      ) : (
+        /* Idle — show "Survey Says" teaser so screen is never blank */
+        <div className="flex-shrink-0 mx-4 py-3 px-6 rounded-xl text-center"
+             style={{ background: 'rgba(255,255,255,0.04)', border: '2px solid rgba(245,200,66,0.2)' }}>
+          <p className="text-2xl font-display tracking-widest"
+             style={{ color: 'rgba(245,200,66,0.5)' }}>
+            SURVEY SAYS…
+          </p>
+          {!isConnected && (
+            <p className="text-sm mt-1 animate-pulse" style={{ color: 'rgba(255,255,255,0.25)', fontFamily: 'Arial' }}>
+              Waiting for host to connect
+            </p>
+          )}
+        </div>
       )}
 
       {/* Answer Board */}
       <div className="flex-1 flex flex-col justify-center px-4 py-2 gap-1.5">
-        {gameState.phase === 'idle' ? (
-          <WaitingBoard />
-        ) : (
+        {(
           q.answers.map((ans, i) => {
-            const revealed = gameState.revealedAnswers[i]
+            const revealed = live.revealedAnswers[i] ?? false
             const isAnimating = animatingIndices.includes(i)
             // Scale font based on text length so long answers always fit
             const textSize = ans.text.length > 42 ? 'text-sm md:text-base' :
@@ -284,25 +281,25 @@ export default function GamePage() {
         <div className="flex gap-2">
           {[0, 1, 2].map(i => (
             <div key={i}
-                 className={`w-9 h-9 rounded-lg flex items-center justify-center text-lg font-bold ${i < gameState.strikes && strikeAnim ? 'strike-appear' : ''}`}
+                 className={`w-9 h-9 rounded-lg flex items-center justify-center text-lg font-bold ${i < live.strikes && strikeAnim ? 'strike-appear' : ''}`}
                  style={{
-                   background: i < gameState.strikes ? '#dc2626' : 'rgba(255,255,255,0.08)',
+                   background: i < live.strikes ? '#dc2626' : 'rgba(255,255,255,0.08)',
                    color: 'white',
                    border: '2px solid',
-                   borderColor: i < gameState.strikes ? '#dc2626' : 'rgba(255,255,255,0.15)',
+                   borderColor: i < live.strikes ? '#dc2626' : 'rgba(255,255,255,0.15)',
                    transition: 'all 0.3s',
                  }}>
-              {i < gameState.strikes ? '✗' : ''}
+              {i < live.strikes ? '✗' : ''}
             </div>
           ))}
         </div>
-        {gameState.roundPoints > 0 && (
+        {live.roundPoints > 0 && (
           <div className="text-center">
             <span className="text-xs uppercase tracking-wider mr-1" style={{ color: 'rgba(255,255,255,0.5)', fontFamily: 'Arial' }}>on board</span>
-            <span className="text-2xl font-display" style={{ color: '#f5c842' }}>{gameState.roundPoints}</span>
+            <span className="text-2xl font-display" style={{ color: '#f5c842' }}>{live.roundPoints}</span>
           </div>
         )}
-        {gameState.phase === 'steal' && (
+        {live.phase === 'steal' && (
           <div className="steal-pulse px-3 py-1 rounded-lg text-sm font-bold uppercase tracking-wider"
                style={{ background: '#f5c842', color: '#0B1437', fontFamily: 'Arial Black' }}>
             STEAL!
@@ -313,8 +310,8 @@ export default function GamePage() {
       {/* Bottom bar: 3 team scores */}
       <div className="flex-shrink-0 grid grid-cols-3 gap-2 px-4 pb-4">
         {TEAMS.map(t => {
-          const active = gameState.controllingTeam === t
-          const stealing = gameState.stealTeam === t
+          const active = live.controllingTeam === t
+          const stealing = live.stealTeam === t
           const col = TEAM_COLORS[t]
           return (
             <div key={t}
@@ -327,12 +324,12 @@ export default function GamePage() {
                  }}>
               <div className="text-xs uppercase tracking-widest mb-1 truncate"
                    style={{ color: 'rgba(255,255,255,0.8)', fontFamily: 'Arial' }}>
-                {getTeamName(gameState, t)}
+                {getTeamName(live, t)}
                 {active && <span style={{ color: '#f5c842' }}> ★</span>}
                 {stealing && <span style={{ color: '#f5c842' }}> 🔥</span>}
               </div>
               <div className="text-3xl md:text-4xl font-display" style={{ color: 'white' }}>
-                {getTeamScore(gameState, t)}
+                {getTeamScore(live, t)}
               </div>
             </div>
           )
@@ -340,6 +337,18 @@ export default function GamePage() {
       </div>
     </div>
   )
+}
+
+function makeDisplayDefault(): GameState {
+  const q = questionsData.questions[0]
+  const [t1, t2, t3] = questionsData.teamNames
+  return {
+    phase: 'idle', currentQuestionIndex: 0, controllingTeam: null, stealTeam: null,
+    team1Name: t1, team2Name: t2, team3Name: t3,
+    team1Score: 0, team2Score: 0, team3Score: 0,
+    strikes: 0, revealedAnswers: new Array(q.answers.length).fill(false),
+    roundPoints: 0, lastRevealedIndex: null,
+  }
 }
 
 const MEDALS = ['🥇', '🥈', '🥉']
@@ -420,14 +429,3 @@ function DotLights() {
   )
 }
 
-function WaitingBoard() {
-  return (
-    <div className="flex flex-col items-center justify-center gap-4 py-6">
-      <Image src="/logo.png" alt="Family Feud" width={400} height={267}
-             style={{ height: 120, width: 'auto', objectFit: 'contain' }} />
-      <div className="text-xl animate-pulse" style={{ color: 'rgba(255,255,255,0.4)', fontFamily: 'Arial' }}>
-        Get ready…
-      </div>
-    </div>
-  )
-}
