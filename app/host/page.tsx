@@ -217,8 +217,16 @@ export default function HostPage() {
         <div>
           <h1 className="text-2xl font-display" style={{ color: '#f5c842' }}>FAMILY FEUD — HOST</h1>
           <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.5)' }}>
-            Controlling: {state.controllingTeam ? getTeamName(state, state.controllingTeam) : 'Nobody yet'}
-            {' '} | Phase: {state.phase.toUpperCase()}
+            {state.phase === 'idle' && !state.controllingTeam && (
+              <span style={{ color: '#f5c842', opacity: 0.7 }}>← Pick a team under <strong>Playing</strong> to start a round</span>
+            )}
+            {state.controllingTeam && (
+              <span>
+                <span style={{ color: TEAM_COLORS[state.controllingTeam].glow }}>● {getTeamName(state, state.controllingTeam)}</span>
+                {' '}is {state.phase === 'steal' ? 'stealing' : 'playing'}
+                {state.strikes > 0 && ` · ${state.strikes} strike${state.strikes > 1 ? 's' : ''}`}
+              </span>
+            )}
           </p>
         </div>
         <div className="flex items-center gap-2">
