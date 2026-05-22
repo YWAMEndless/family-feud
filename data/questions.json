@@ -1,0 +1,71 @@
+{
+  "teamNames": ["Team 1", "Team 2"],
+  "questions": [
+    {
+      "question": "Name something you take to the beach",
+      "answers": [
+        { "text": "Towel", "points": 42 },
+        { "text": "Sunscreen", "points": 28 },
+        { "text": "Umbrella", "points": 14 },
+        { "text": "Food/Snacks", "points": 8 },
+        { "text": "Sunglasses", "points": 5 },
+        { "text": "Chair", "points": 3 }
+      ]
+    },
+    {
+      "question": "Name something people do at church",
+      "answers": [
+        { "text": "Pray", "points": 45 },
+        { "text": "Sing/Worship", "points": 30 },
+        { "text": "Listen to a sermon", "points": 12 },
+        { "text": "Read the Bible", "points": 7 },
+        { "text": "Socialize", "points": 4 },
+        { "text": "Take offering", "points": 2 }
+      ]
+    },
+    {
+      "question": "Name a reason someone would be late to church",
+      "answers": [
+        { "text": "Overslept", "points": 48 },
+        { "text": "Kids", "points": 25 },
+        { "text": "Traffic", "points": 13 },
+        { "text": "Couldn't find parking", "points": 8 },
+        { "text": "Got lost", "points": 4 },
+        { "text": "Forgot it was Sunday", "points": 2 }
+      ]
+    },
+    {
+      "question": "Name something you find in a pastor's office",
+      "answers": [
+        { "text": "Bible", "points": 50 },
+        { "text": "Books", "points": 22 },
+        { "text": "Desk", "points": 15 },
+        { "text": "Cross", "points": 8 },
+        { "text": "Computer", "points": 3 },
+        { "text": "Couch/Chair", "points": 2 }
+      ]
+    },
+    {
+      "question": "Name a Bible story everyone knows",
+      "answers": [
+        { "text": "Noah's Ark", "points": 40 },
+        { "text": "David and Goliath", "points": 25 },
+        { "text": "Adam and Eve", "points": 18 },
+        { "text": "Jonah and the Whale", "points": 10 },
+        { "text": "The Nativity/Christmas", "points": 5 },
+        { "text": "Moses and the Red Sea", "points": 2 }
+      ]
+    },
+    {
+      "question": "Name something you might say when you're excited",
+      "answers": [
+        { "text": "Wow!", "points": 38 },
+        { "text": "Yes!", "points": 27 },
+        { "text": "Oh my goodness!", "points": 18 },
+        { "text": "Hallelujah!", "points": 10 },
+        { "text": "No way!", "points": 5 },
+        { "text": "Amen!", "points": 2 }
+      ]
+    }
+  ]
+}

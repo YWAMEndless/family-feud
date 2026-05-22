@@ -1,0 +1,99 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: #0B1437;
+  color: white;
+  font-family: Impact, 'Arial Black', sans-serif;
+}
+
+/* Answer slot flip animation */
+.answer-slot {
+  position: relative;
+  overflow: hidden;
+}
+
+.answer-slot-inner {
+  transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.answer-revealed {
+  animation: slideReveal 0.4s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
+@keyframes slideReveal {
+  0% {
+    transform: scaleY(0);
+    opacity: 0;
+    background-color: #f5c842;
+  }
+  40% {
+    background-color: #f5c842;
+  }
+  100% {
+    transform: scaleY(1);
+    opacity: 1;
+    background-color: #1d5db8;
+  }
+}
+
+.strike-appear {
+  animation: strikeAnim 0.35s ease-out forwards;
+}
+
+@keyframes strikeAnim {
+  0% { transform: scale(0) rotate(-30deg); opacity: 0; }
+  60% { transform: scale(1.2) rotate(5deg); }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+.score-pop {
+  animation: scorePop 0.4s ease-out;
+}
+
+@keyframes scorePop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.35); color: #f5c842; }
+  100% { transform: scale(1); }
+}
+
+/* Gold glow for active team */
+.team-active {
+  box-shadow: 0 0 20px rgba(245, 200, 66, 0.6), 0 0 40px rgba(245, 200, 66, 0.3);
+  border-color: #f5c842 !important;
+}
+
+/* TV scanline overlay for display screen */
+.tv-overlay {
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.03) 2px,
+    rgba(0, 0, 0, 0.03) 4px
+  );
+  pointer-events: none;
+}
+
+/* Gold border glow */
+.gold-border {
+  border: 2px solid #f5c842;
+  box-shadow: 0 0 8px rgba(245, 200, 66, 0.4), inset 0 0 8px rgba(245, 200, 66, 0.1);
+}
+
+/* Steal mode pulse */
+.steal-pulse {
+  animation: stealPulse 1s ease-in-out infinite;
+}
+
+@keyframes stealPulse {
+  0%, 100% { box-shadow: 0 0 10px rgba(245, 200, 66, 0.4); }
+  50% { box-shadow: 0 0 30px rgba(245, 200, 66, 0.9), 0 0 60px rgba(245, 200, 66, 0.5); }
+}
