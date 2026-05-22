@@ -43,6 +43,27 @@ export default function Home() {
               }}>
           DISPLAY SCREEN
         </Link>
+
+        <Link href="/buzz/display"
+              className="block text-center py-5 px-8 rounded-lg text-2xl font-display tracking-widest uppercase transition-all hover:scale-105 active:scale-95"
+              style={{
+                background: 'linear-gradient(135deg, #7c3aed, #4c1d95)',
+                color: 'white',
+                border: '2px solid rgba(167,139,250,0.5)',
+                boxShadow: '0 4px 20px rgba(124,58,237,0.4)',
+              }}>
+          BUZZER DISPLAY
+        </Link>
+
+        <Link href="/buzz"
+              className="block text-center py-4 px-8 rounded-lg text-lg font-display tracking-widest uppercase transition-all hover:scale-105 active:scale-95"
+              style={{
+                background: 'rgba(124,58,237,0.2)',
+                color: 'rgba(167,139,250,0.9)',
+                border: '1px solid rgba(167,139,250,0.3)',
+              }}>
+          TEAM BUZZER
+        </Link>
       </div>
 
       {/* Instructions */}
@@ -50,7 +71,8 @@ export default function Home() {
            style={{ color: 'rgba(255,255,255,0.6)', fontFamily: 'Arial, sans-serif' }}>
         <p>Open <strong className="text-white">Host Controls</strong> on your laptop.</p>
         <p className="mt-1">Open <strong className="text-white">Display Screen</strong> in a second window and drag it to your projector.</p>
-        <p className="mt-3 text-xs">Both windows must be open on the same device for sync to work.</p>
+        <p className="mt-1">Share <strong className="text-white">/buzz?team=1</strong> and <strong className="text-white">/buzz?team=2</strong> with each team&apos;s phone.</p>
+        <p className="mt-3 text-xs">Game display syncs on the same device. Buzzers work across devices on any network.</p>
       </div>
     </div>
   )
