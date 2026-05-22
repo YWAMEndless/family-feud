@@ -44,6 +44,7 @@ export default function HostPage() {
     questionsData.teamNames[2],
   ])
   const [flash, setFlash] = useState<string | null>(null)
+  const [confirmReset, setConfirmReset] = useState(false)
   const channelRef = useRef<BroadcastChannel | null>(null)
 
   useEffect(() => {
@@ -135,6 +136,23 @@ export default function HostPage() {
       phase: 'roundEnd',
     }, 'winner')
     showFlash(`+${pts} points to ${getTeamName(state, team)}!`)
+  }
+
+  async function resetGame() {
+    const fresh = makeInitialState()
+    // Preserve team names if the user customised them
+    fresh.team1Name = state.team1Name
+    fresh.team2Name = state.team2Name
+    fresh.team3Name = state.team3Name
+    update(fresh)
+    // Also clear buzzers
+    await fetch('/api/buzz', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'reset', team1Name: fresh.team1Name, team2Name: fresh.team2Name, team3Name: fresh.team3Name }),
+    }).catch(() => {})
+    setConfirmReset(false)
+    showFlash('Game reset! All scores cleared.')
   }
 
   async function resetBuzzers() {
@@ -404,6 +422,41 @@ export default function HostPage() {
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Full game reset */}
+          <div className="rounded-xl p-4" style={{ background: '#1a0a0a', border: '1px solid rgba(220,38,38,0.4)' }}>
+            <p className="text-xs uppercase tracking-widest mb-2 font-bold" style={{ color: '#ef4444' }}>
+              Danger Zone
+            </p>
+            {confirmReset ? (
+              <div className="space-y-2">
+                <p className="text-sm text-center font-bold" style={{ color: 'white', fontFamily: 'Arial' }}>
+                  Reset everything? All scores go to zero.
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={resetGame}
+                    className="py-2.5 rounded-lg font-bold text-sm transition-all hover:scale-105"
+                    style={{ background: '#dc2626', color: 'white' }}>
+                    Yes, reset
+                  </button>
+                  <button
+                    onClick={() => setConfirmReset(false)}
+                    className="py-2.5 rounded-lg font-bold text-sm transition-all hover:scale-105"
+                    style={{ background: '#374151', color: 'white' }}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => setConfirmReset(true)}
+                className="w-full py-2.5 rounded-lg font-bold text-sm transition-all hover:scale-105"
+                style={{ background: 'rgba(220,38,38,0.2)', color: '#ef4444', border: '1px solid rgba(220,38,38,0.4)' }}>
+                🔄 Reset Entire Game
+              </button>
+            )}
           </div>
 
         </div>
