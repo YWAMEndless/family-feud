@@ -1,7 +1,16 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
-import type { GameState, SyncMessage } from '@/lib/types'
+import type { GameState, SyncMessage, TeamNum } from '@/lib/types'
+import { TEAM_COLORS } from '@/lib/types'
 import questionsData from '@/data/questions.json'
+
+const TEAMS: TeamNum[] = [1, 2, 3]
+function getTeamName(s: GameState, t: TeamNum) {
+  return t === 1 ? s.team1Name : t === 2 ? s.team2Name : s.team3Name
+}
+function getTeamScore(s: GameState, t: TeamNum) {
+  return t === 1 ? s.team1Score : t === 2 ? s.team2Score : s.team3Score
+}
 
 const CHANNEL = 'family-feud-sync'
 
@@ -247,79 +256,64 @@ export default function GamePage() {
         )}
       </div>
 
-      {/* Bottom bar: scores + strikes */}
-      <div className="flex-shrink-0 flex items-center gap-2 px-4 pb-4 pt-2">
-
-        {/* Team 1 */}
-        <div className={`flex-1 rounded-xl py-3 px-4 text-center transition-all ${gameState.controllingTeam === 1 ? 'team-active' : ''}`}
-             style={{
-               background: 'linear-gradient(135deg, #1a3c7f, #1d5db8)',
-               border: '2px solid',
-               borderColor: gameState.controllingTeam === 1 ? '#f5c842' : 'rgba(245,200,66,0.3)',
-             }}>
-          <div className="text-xs uppercase tracking-widest mb-1"
-               style={{ color: 'rgba(255,255,255,0.7)', fontFamily: 'Arial' }}>
-            {gameState.team1Name}
-            {gameState.controllingTeam === 1 && <span style={{ color: '#f5c842' }}> ★</span>}
-          </div>
-          <div className="text-4xl font-display" style={{ color: 'white' }}>
-            {gameState.team1Score}
-          </div>
+      {/* Strikes + round points row */}
+      <div className="flex-shrink-0 flex items-center justify-center gap-4 px-4 pt-1 pb-1">
+        <div className="flex gap-2">
+          {[0, 1, 2].map(i => (
+            <div key={i}
+                 className={`w-9 h-9 rounded-lg flex items-center justify-center text-lg font-bold ${i < gameState.strikes && strikeAnim ? 'strike-appear' : ''}`}
+                 style={{
+                   background: i < gameState.strikes ? '#dc2626' : 'rgba(255,255,255,0.08)',
+                   color: 'white',
+                   border: '2px solid',
+                   borderColor: i < gameState.strikes ? '#dc2626' : 'rgba(255,255,255,0.15)',
+                   transition: 'all 0.3s',
+                 }}>
+              {i < gameState.strikes ? '✗' : ''}
+            </div>
+          ))}
         </div>
+        {gameState.roundPoints > 0 && (
+          <div className="text-center">
+            <span className="text-xs uppercase tracking-wider mr-1" style={{ color: 'rgba(255,255,255,0.5)', fontFamily: 'Arial' }}>on board</span>
+            <span className="text-2xl font-display" style={{ color: '#f5c842' }}>{gameState.roundPoints}</span>
+          </div>
+        )}
+        {gameState.phase === 'steal' && (
+          <div className="steal-pulse px-3 py-1 rounded-lg text-sm font-bold uppercase tracking-wider"
+               style={{ background: '#f5c842', color: '#0B1437', fontFamily: 'Arial Black' }}>
+            STEAL!
+          </div>
+        )}
+      </div>
 
-        {/* Center: round points + strikes */}
-        <div className="flex-shrink-0 flex flex-col items-center gap-2 px-2"
-             style={{ minWidth: 120 }}>
-          {/* Strikes */}
-          <div className="flex gap-2">
-            {[0, 1, 2].map(i => (
-              <div key={i}
-                   className={`w-10 h-10 rounded-lg flex items-center justify-center text-xl font-bold ${i < gameState.strikes && strikeAnim ? 'strike-appear' : ''}`}
-                   style={{
-                     background: i < gameState.strikes ? '#dc2626' : 'rgba(255,255,255,0.08)',
-                     color: 'white',
-                     border: '2px solid',
-                     borderColor: i < gameState.strikes ? '#dc2626' : 'rgba(255,255,255,0.15)',
-                     transition: 'all 0.3s',
-                   }}>
-                {i < gameState.strikes ? '✗' : ''}
+      {/* Bottom bar: 3 team scores */}
+      <div className="flex-shrink-0 grid grid-cols-3 gap-2 px-4 pb-4">
+        {TEAMS.map(t => {
+          const active = gameState.controllingTeam === t
+          const stealing = gameState.stealTeam === t
+          const col = TEAM_COLORS[t]
+          return (
+            <div key={t}
+                 className={`rounded-xl py-3 px-3 text-center transition-all ${active ? 'team-active' : ''}`}
+                 style={{
+                   background: `linear-gradient(135deg, ${col.dark}, ${col.bg})`,
+                   border: '2px solid',
+                   borderColor: active || stealing ? '#f5c842' : `${col.border}55`,
+                   boxShadow: active ? `0 0 16px ${col.glow}55` : 'none',
+                 }}>
+              <div className="text-xs uppercase tracking-widest mb-1 truncate"
+                   style={{ color: 'rgba(255,255,255,0.8)', fontFamily: 'Arial' }}>
+                {getTeamName(gameState, t)}
+                {active && <span style={{ color: '#f5c842' }}> ★</span>}
+                {stealing && <span style={{ color: '#f5c842' }}> 🔥</span>}
               </div>
-            ))}
-          </div>
-
-          {/* Round pot */}
-          {gameState.roundPoints > 0 && (
-            <div className="text-center">
-              <div className="text-xs uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.5)', fontFamily: 'Arial' }}>on board</div>
-              <div className="text-2xl font-display" style={{ color: '#f5c842' }}>{gameState.roundPoints}</div>
+              <div className="text-3xl md:text-4xl font-display" style={{ color: 'white' }}>
+                {getTeamScore(gameState, t)}
+              </div>
             </div>
-          )}
-
-          {/* Phase indicator */}
-          {gameState.phase === 'steal' && (
-            <div className="steal-pulse px-3 py-1 rounded-lg text-sm font-bold uppercase tracking-wider"
-                 style={{ background: '#f5c842', color: '#0B1437', fontFamily: 'Arial Black' }}>
-              STEAL!
-            </div>
-          )}
-        </div>
-
-        {/* Team 2 */}
-        <div className={`flex-1 rounded-xl py-3 px-4 text-center transition-all ${gameState.controllingTeam === 2 ? 'team-active' : ''}`}
-             style={{
-               background: 'linear-gradient(135deg, #1a3c7f, #1d5db8)',
-               border: '2px solid',
-               borderColor: gameState.controllingTeam === 2 ? '#f5c842' : 'rgba(245,200,66,0.3)',
-             }}>
-          <div className="text-xs uppercase tracking-widest mb-1"
-               style={{ color: 'rgba(255,255,255,0.7)', fontFamily: 'Arial' }}>
-            {gameState.team2Name}
-            {gameState.controllingTeam === 2 && <span style={{ color: '#f5c842' }}> ★</span>}
-          </div>
-          <div className="text-4xl font-display" style={{ color: 'white' }}>
-            {gameState.team2Score}
-          </div>
-        </div>
+          )
+        })}
       </div>
     </div>
   )
