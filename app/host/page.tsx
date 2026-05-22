@@ -137,6 +137,20 @@ export default function HostPage() {
     showFlash(`+${pts} points to ${getTeamName(state, team)}!`)
   }
 
+  async function resetBuzzers() {
+    await fetch('/api/buzz', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'reset',
+        team1Name: state.team1Name,
+        team2Name: state.team2Name,
+        team3Name: state.team3Name,
+      }),
+    }).catch(() => {})
+    showFlash('Buzzers reset!')
+  }
+
   function adjustScore(team: TeamNum, delta: number) {
     update({
       ...state,
@@ -360,11 +374,18 @@ export default function HostPage() {
               ))}
             </div>
 
-            <button onClick={() => goToQuestion(state.currentQuestionIndex)}
-                    className="w-full py-2 rounded-lg font-bold text-sm mt-1 transition-all hover:scale-105"
-                    style={{ background: '#374151', color: 'rgba(255,255,255,0.8)' }}>
-              ↺ Reset Round
-            </button>
+            <div className="grid grid-cols-2 gap-2 mt-1">
+              <button onClick={() => goToQuestion(state.currentQuestionIndex)}
+                      className="py-2 rounded-lg font-bold text-sm transition-all hover:scale-105"
+                      style={{ background: '#374151', color: 'rgba(255,255,255,0.8)' }}>
+                ↺ Reset Round
+              </button>
+              <button onClick={resetBuzzers}
+                      className="py-2 rounded-lg font-bold text-sm transition-all hover:scale-105"
+                      style={{ background: '#4c1d95', color: 'white', border: '1px solid rgba(167,139,250,0.4)' }}>
+                🔔 Reset Buzz
+              </button>
+            </div>
           </div>
 
           {/* Question picker */}

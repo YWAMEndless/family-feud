@@ -15,5 +15,6 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/host/:path*', '/buzz/:path*'],
+  // Regex form catches /host and /buzz with or without trailing path
+  matcher: ['/host(.*)', '/buzz(.*)'],
 }

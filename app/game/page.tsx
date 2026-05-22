@@ -64,8 +64,16 @@ function playSound(type: SyncMessage['sound'], ctx: AudioContext) {
   }
 }
 
+interface BuzzState {
+  winner: TeamNum | null
+  team1Name: string
+  team2Name: string
+  team3Name: string
+}
+
 export default function GamePage() {
   const [gameState, setGameState] = useState<GameState | null>(null)
+  const [buzzState, setBuzzState] = useState<BuzzState | null>(null)
   const [animatingIndices, setAnimatingIndices] = useState<number[]>([])
   const [strikeAnim, setStrikeAnim] = useState(false)
   const prevStrikesRef = useRef(0)
@@ -123,16 +131,17 @@ export default function GamePage() {
     // Request current state from host
     ch.postMessage({ type: 'REQUEST_STATE' } as SyncMessage)
 
-    // Poll API as fallback for cross-device setups
+    // Poll game state (cross-device fallback) and buzz state together
     pollRef.current = setInterval(async () => {
       try {
-        const res = await fetch('/api/state', { cache: 'no-store' })
-        if (res.ok) {
-          const data = await res.json()
-          if (data) applyState(data)
-        }
+        const [stateRes, buzzRes] = await Promise.all([
+          fetch('/api/state', { cache: 'no-store' }),
+          fetch('/api/buzz', { cache: 'no-store' }),
+        ])
+        if (stateRes.ok) { const d = await stateRes.json(); if (d) applyState(d) }
+        if (buzzRes.ok) { const d = await buzzRes.json(); if (d) setBuzzState(d) }
       } catch {}
-    }, 1500)
+    }, 600)
 
     return () => {
       ch.close()
@@ -168,11 +177,23 @@ export default function GamePage() {
     <div className="min-h-screen flex flex-col tv-overlay"
          style={{ background: 'linear-gradient(180deg, #0B1437 0%, #0d1f4c 100%)' }}>
 
-      {/* Title bar with logo */}
-      <div className="flex-shrink-0 flex items-center justify-center py-2"
+      {/* Title bar: buzzer widget left | logo center | balance right */}
+      <div className="flex-shrink-0 flex items-center py-2 px-3 gap-2"
            style={{ background: 'linear-gradient(90deg, #0B1437, #1a3c7f, #0B1437)' }}>
-        <Image src="/logo.png" alt="Family Feud" width={320} height={213}
-               priority style={{ height: 72, width: 'auto', objectFit: 'contain' }} />
+
+        {/* Left: buzzer status widget */}
+        <div className="w-40 flex-shrink-0">
+          <BuzzerWidget buzz={buzzState} />
+        </div>
+
+        {/* Center: logo */}
+        <div className="flex-1 flex justify-center">
+          <Image src="/logo.png" alt="Family Feud" width={320} height={213}
+                 priority style={{ height: 68, width: 'auto', objectFit: 'contain' }} />
+        </div>
+
+        {/* Right: balance spacer */}
+        <div className="w-40 flex-shrink-0" />
       </div>
 
       {/* Dot lights strip */}
@@ -317,6 +338,60 @@ export default function GamePage() {
           )
         })}
       </div>
+    </div>
+  )
+}
+
+function BuzzerWidget({ buzz }: { buzz: BuzzState | null }) {
+  const winner = buzz?.winner ?? null
+  const names = [
+    buzz?.team1Name ?? 'Juniors',
+    buzz?.team2Name ?? 'Coaches',
+    buzz?.team3Name ?? 'Small Group Guides',
+  ]
+
+  return (
+    <div className="rounded-xl overflow-hidden"
+         style={{ border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.3)' }}>
+      <div className="px-2 py-0.5 text-center"
+           style={{ background: 'rgba(0,0,0,0.4)', fontSize: 9, letterSpacing: '0.15em',
+                    color: 'rgba(255,255,255,0.4)', fontFamily: 'Arial', textTransform: 'uppercase' }}>
+        Buzzers
+      </div>
+      <div className="flex flex-col gap-0.5 p-1.5">
+        {TEAMS.map(t => {
+          const col = TEAM_COLORS[t]
+          const isWinner = winner === t
+          const isLoser = winner !== null && winner !== t
+          return (
+            <div key={t}
+                 className="flex items-center gap-1.5 px-2 py-1 rounded-lg transition-all"
+                 style={{
+                   background: isWinner ? col.bg : 'rgba(255,255,255,0.04)',
+                   border: `1px solid ${isWinner ? col.border : 'rgba(255,255,255,0.06)'}`,
+                   boxShadow: isWinner ? `0 0 10px ${col.glow}88` : 'none',
+                   animation: isWinner ? 'pulseGold 1.5s ease-in-out infinite' : 'none',
+                   opacity: isLoser ? 0.3 : 1,
+                 }}>
+              <div className="w-2 h-2 rounded-full flex-shrink-0"
+                   style={{ background: isWinner ? 'white' : col.bg, opacity: isWinner ? 1 : 0.7 }} />
+              <span style={{
+                fontSize: 11, fontFamily: 'Arial Black, sans-serif', color: 'white',
+                fontWeight: 'bold', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+              }}>
+                {names[t - 1]}
+              </span>
+              {isWinner && <span style={{ marginLeft: 'auto', fontSize: 11 }}>★</span>}
+            </div>
+          )
+        })}
+      </div>
+      {!winner && (
+        <div className="text-center pb-1.5" style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)',
+             fontFamily: 'Arial', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+          ready
+        </div>
+      )}
     </div>
   )
 }

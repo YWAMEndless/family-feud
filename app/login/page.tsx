@@ -23,7 +23,8 @@ function LoginInner() {
         body: JSON.stringify({ password }),
       })
       if (res.ok) {
-        router.replace(from)
+        // Full page navigation so the browser sends the new cookie on the next request
+        window.location.href = from
       } else {
         setError('Incorrect password. Try again.')
         setPassword('')
